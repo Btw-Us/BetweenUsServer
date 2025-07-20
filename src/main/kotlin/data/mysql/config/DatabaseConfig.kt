@@ -17,13 +17,17 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.sql.Connection
 
 
 object DatabaseConfig {
 
     fun init(): Database {
-        return Database.connect(createHikariDataSource())
+        return Database.connect(createHikariDataSource()).apply {
+            TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
+        }
     }
 
     private fun createHikariDataSource(): HikariDataSource {

@@ -11,6 +11,7 @@
 package com.aatech.data.mysql.model
 
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.isNotNull
 import org.jetbrains.exposed.v1.core.Table
 import java.util.*
 
@@ -38,4 +39,9 @@ object AuthTokenTable : Table("auth_tokens_table") {
     val createdAt = long("created_at")
 
     override val primaryKey = PrimaryKey(id)
+
+    init {
+        index("idx_token", true, token)
+        index("idx_user_id", true, userId)
+    }
 }
