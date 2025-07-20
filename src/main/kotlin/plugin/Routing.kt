@@ -1,4 +1,4 @@
-package com.aatech.server_config
+package com.aatech.plugin
 
 import com.aatech.config.api_config.CURRENT_VERSION
 import com.aatech.routes.health

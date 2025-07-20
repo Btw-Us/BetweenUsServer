@@ -14,16 +14,17 @@
  * For permission requests, contact: ayaan35200@gmail.com
  */
 
-package com.aatech.config
+package com.aatech.plugin
 
 import io.ktor.server.application.*
-import io.ktor.server.plugins.calllogging.*
-import io.ktor.server.request.*
-import org.slf4j.event.*
+import io.ktor.server.plugins.di.*
 
-fun Application.configureMonitoring() {
-    install(CallLogging) {
-        level = Level.INFO
-        filter { call -> call.request.path().startsWith("/") }
+fun Application.configureFrameworks() {
+    dependencies {
+        provide { GreetingService { "Hello, World!" } }
     }
+}
+
+fun interface GreetingService {
+    fun sayHello(): String
 }

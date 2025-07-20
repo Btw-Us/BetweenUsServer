@@ -14,7 +14,7 @@
  * For permission requests, contact: ayaan35200@gmail.com
  */
 
-package com.aatech.server_config
+package com.aatech.plugin
 
 import com.aatech.config.response.createErrorResponse
 import io.ktor.http.*

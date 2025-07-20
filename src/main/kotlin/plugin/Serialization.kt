@@ -14,17 +14,21 @@
  * For permission requests, contact: ayaan35200@gmail.com
  */
 
-package com.aatech.config
+package com.aatech.plugin
 
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
-import io.ktor.server.plugins.di.*
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 
-fun Application.configureFrameworks() {
-    dependencies {
-        provide { GreetingService { "Hello, World!" } }
+fun Application.configureSerialization() {
+    install(ContentNegotiation) {
+        json()
     }
-}
-
-fun interface GreetingService {
-    fun sayHello(): String
+    routing {
+        get("/json/kotlinx-serialization") {
+            call.respond(mapOf("hello" to "world"))
+        }
+    }
 }

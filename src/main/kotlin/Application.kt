@@ -10,11 +10,7 @@
 
 package com.aatech
 
-import com.aatech.server_config.configureAuthentication
-import com.aatech.config.configureFrameworks
-import com.aatech.config.configureMonitoring
-import com.aatech.server_config.configureRouting
-import com.aatech.config.configureSerialization
+import com.aatech.plugin.*
 import io.ktor.server.application.*
 
 fun main(args: Array<String>) {
@@ -27,4 +23,5 @@ fun Application.module() {
     configureSerialization()
     configureMonitoring()
     configureFrameworks()
+    configureDatabases()
 }
