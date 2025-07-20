@@ -22,7 +22,6 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
-import io.ktor.server.routing.*
 
 fun Application.configureAuthentication() {
     install(Authentication) {
@@ -50,26 +49,16 @@ fun Application.configureAuthentication() {
                     code = HttpStatusCode.Unauthorized.value,
                     message = "Unauthorized access. Please provide a valid token.",
                     details = """
-                Unauthorized access. Please provide a valid Bearer token.
+                The request was denied due to missing or invalid authentication credentials.
+                if you are added your token in the header, please check if it is correct or is not expired.
                 
-                Ensure that you include the 'Authorization' header with a valid Bearer token in your request.
+                To authenticate, please include a valid token in the request header:
                 Example:
                  Authorization: Bearer <your_token_here>
                 If you do not have a token, please contact the system administrator to obtain one.
             """.trimIndent()
                 )
             )
-        }
-    }
-}
-
-
-fun Routing.addAuthenticationRoutes(
-    build: Route.() -> Unit
-) {
-    authenticate("auth-bearer") {
-        get("/authenticate") {
-            call.respondText("You are authenticated!", status = HttpStatusCode.OK)
         }
     }
 }

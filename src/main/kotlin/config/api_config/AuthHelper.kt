@@ -11,15 +11,15 @@
 package com.aatech.config.api_config
 
 import com.aatech.config.response.createErrorResponse
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.BearerTokenCredential
-import io.ktor.server.auth.principal
-import io.ktor.server.request.header
-import io.ktor.server.response.respond
-import io.ktor.server.routing.RoutingContext
+import com.aatech.data.mysql.services.AuthTokenService
+import io.ktor.http.*
+import io.ktor.server.auth.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 
 suspend fun RoutingContext.checkAuth(
-    onSuccess:suspend (AuthenticationParams) -> Unit
+    onSuccess: suspend (AuthenticationParams) -> Unit
 ) {
     try {
         val tokenPrincipal = call.principal<BearerTokenCredential>()
@@ -30,6 +30,20 @@ suspend fun RoutingContext.checkAuth(
                     message = "Unauthorized",
                     code = HttpStatusCode.Unauthorized.value,
                     details = "No valid authentication token provided."
+                )
+            )
+            return
+        }
+        val authTokenService = AuthTokenService()
+        // Validate the token
+        val isValidToken = authTokenService.isTokenValid(tokenPrincipal.token)
+        if (!isValidToken) {
+            call.respond(
+                HttpStatusCode.Unauthorized,
+                createErrorResponse(
+                    message = "Unauthorized",
+                    code = HttpStatusCode.Unauthorized.value,
+                    details = "Invalid or expired authentication token."
                 )
             )
             return

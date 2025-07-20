@@ -24,7 +24,7 @@ import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Routing.health() {
+fun Routing.checkHealth() {
     authenticate("auth-bearer") {
         get(HEALTH) {
             checkAuth { authParam ->
