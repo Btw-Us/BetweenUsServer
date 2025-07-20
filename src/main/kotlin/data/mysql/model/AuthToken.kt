@@ -12,19 +12,24 @@ package com.aatech.data.mysql.model
 
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.Table
+import java.util.*
+
+enum class GeneratedFrom {
+    SERVER, CLIENT, ADMIN_PANEL
+}
 
 @Serializable
-class AuthToken(
-    val id: Int,
-    val generatedFrom : String,
-    val token: String,
-    val userId: String?,
-    val expiresAt: Long? = null,
+data class AuthToken(
+    val generatedFrom: GeneratedFrom,
+    val token: String = UUID.randomUUID().toString(),
+    val userId: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    val expiresAt: Long? = null,
+    val id: Long = 0,
 )
 
 
-object AuthTokenTable : Table("auth_tokens"){
+object AuthTokenTable : Table("auth_tokens_table") {
     val id = integer("id").autoIncrement()
     val generatedFrom = varchar("generated_from", 255)
     val token = varchar("token", 255).uniqueIndex()

@@ -1,6 +1,7 @@
 package com.aatech.plugin
 
 import com.aatech.config.api_config.CURRENT_VERSION
+import com.aatech.routes.authToken
 import com.aatech.routes.health
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -33,6 +34,7 @@ fun Application.configureRouting() {
     routing {
         hello()
         health()
+        authToken()
     }
 }
 
