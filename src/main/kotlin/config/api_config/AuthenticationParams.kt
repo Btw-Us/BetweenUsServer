@@ -17,6 +17,7 @@ package com.aatech.config.api_config
 
 import io.ktor.http.HttpStatusCode
 import com.aatech.config.response.ErrorResponse
+import kotlinx.serialization.Serializable
 
 /**
  * Define the type of client making the request.
@@ -48,6 +49,7 @@ enum class ClientType{
  * * @constructor Creates an instance of [AuthenticationParams] with the specified parameters.
  * * @property clientType The type of client making the request (default is API).
  */
+@Serializable
 data class AuthenticationParams(
     val clientType: ClientType = ClientType.API,
     val authToken: String,
@@ -82,6 +84,10 @@ data class AuthenticationParams(
         return null
     }
 
+    fun isUserLoggedIn(): Boolean {
+        return userId != null && userId.isNotEmpty()
+    }
+
     /**
      * Converts the authentication parameters to a map of headers.
      * This method is useful for including the authentication information
@@ -89,7 +95,7 @@ data class AuthenticationParams(
      *
      * @return A map containing the headers required for authentication.
      */
-    fun toHeaders(): Map<String, String> {
+    fun AuthenticationParams.convertToHeaders(): Map<String, String> {
         val headers = mutableMapOf<String, String>()
         headers["Authorization"] = "Bearer $authToken"
         headers["X-Client-Type"] = clientType.name

@@ -17,84 +17,23 @@
 package com.aatech.routes
 
 
-import com.aatech.config.api_config.AuthenticationParams
-import com.aatech.config.api_config.ClientType
 import com.aatech.config.api_config.HEALTH
-import com.aatech.config.response.createErrorResponse
+import com.aatech.config.api_config.checkAuth
 import io.ktor.http.*
 import io.ktor.server.auth.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Routing.health() {
     authenticate("auth-bearer") {
         get(HEALTH) {
-            try {
-                val tokenPrincipal = call.principal<BearerTokenCredential>()
-                println("Health check request received with token: ${tokenPrincipal}")
-                if (tokenPrincipal == null) {
-                    call.respond(
-                        HttpStatusCode.Unauthorized,
-                        createErrorResponse(
-                            message = "Unauthorized",
-                            code = HttpStatusCode.Unauthorized.value,
-                            details = "No valid authentication token provided."
-                        )
-                    )
-                    return@get
-                }
-
-                // Now we can access call and validate headers
-                val clientType = call.request.header("X-Client-Type")?.let {
-                    try {
-                        ClientType.valueOf(it)
-                    } catch (e: IllegalArgumentException) {
-                        ClientType.OTHER
-                    }
-                } ?: ClientType.OTHER
-
-                // Create authentication parameters with full validation
-                val authParam = AuthenticationParams(
-                    clientType = clientType,
-                    authToken = tokenPrincipal.token,
-                    userId = call.request.header("X-User-Id"),
-                    clientVersion = call.request.header("X-Client-Version"),
-                    deviceId = call.request.header("X-Device-Id"),
-                    session = call.request.header("X-Session"),
-                    deviceName = call.request.header("X-Device-Name")
-                )
-
-                // Validate authentication parameters
-                val validationError = authParam.isAuthenticationParams()
-                if (validationError != null) {
-                    call.respond(
-                        status = if (validationError.errorCode == HttpStatusCode.Unauthorized.value) {
-                            HttpStatusCode.Unauthorized
-                        } else {
-                            HttpStatusCode.BadRequest
-                        },
-                        createErrorResponse(
-                            message = validationError.errorMessage,
-                            code = validationError.errorCode,
-                            details = validationError.details
-                        )
-                    )
-                    return@get
-                }
-
-                // Your health check logic here - authentication successful
-                call.respondText("OK - Service is healthy")
-            } catch (e: Exception) {
+            checkAuth { authParam ->
                 call.respond(
-                    HttpStatusCode.InternalServerError,
-                    createErrorResponse(
-                        message = "Internal server error",
-                        code = HttpStatusCode.InternalServerError.value,
-                        details = e.message ?: "An unexpected error occurred"
-                    )
+                    HttpStatusCode.OK,
+                    message = authParam
                 )
             }
         }
     }
 }
+

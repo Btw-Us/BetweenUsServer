@@ -16,11 +16,13 @@
 
 package com.aatech.server_config
 
+import com.aatech.config.response.createErrorResponse
+import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.application.install
 import io.ktor.server.auth.*
-import io.ktor.server.auth.bearer
-import kotlin.text.isEmpty
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 
 fun Application.configureAuthentication() {
     install(Authentication) {
@@ -38,6 +40,36 @@ fun Application.configureAuthentication() {
                     return@authenticate null
                 }
             }
+        }
+    }
+    install(StatusPages) {
+        status(HttpStatusCode.Unauthorized) {
+            call.respond(
+                HttpStatusCode.Unauthorized,
+                createErrorResponse(
+                    code = HttpStatusCode.Unauthorized.value,
+                    message = "Unauthorized access. Please provide a valid token.",
+                    details = """
+                Unauthorized access. Please provide a valid Bearer token.
+                
+                Ensure that you include the 'Authorization' header with a valid Bearer token in your request.
+                Example:
+                 Authorization: Bearer <your_token_here>
+                If you do not have a token, please contact the system administrator to obtain one.
+            """.trimIndent()
+                )
+            )
+        }
+    }
+}
+
+
+fun Routing.addAuthenticationRoutes(
+    build: Route.() -> Unit
+) {
+    authenticate("auth-bearer") {
+        get("/authenticate") {
+            call.respondText("You are authenticated!", status = HttpStatusCode.OK)
         }
     }
 }
