@@ -1,6 +1,5 @@
 # BetweenUsServer
-[![wakatime](https://wakatime.com/badge/user/3a4240f0-6bea-4626-be2a-1129790e4336/project/20c35e40-c5c6-47d6-8a78-bed434780be2.svg)](https://wakatime.com/badge/user/3a4240f0-6bea-4626-be2a-1129790e4336/project/20c35e40-c5c6-47d6-8a78-bed434780be2)
-
+[![wakatime](https://wakatime.com/badge/github/aiyu-ayaan/BetweenUs.svg)](https://wakatime.com/badge/github/aiyu-ayaan/BetweenUs)
 
 > *A humble server, fueling fragments of a quiet dream.*
 
