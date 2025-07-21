@@ -18,6 +18,6 @@ interface UserPrivacySettingsRepository {
     ) : UserPrivacySettings
 
     suspend fun getUserById(
-        userId: Long
+        userId: String
     ): UserPrivacySettings?
 }

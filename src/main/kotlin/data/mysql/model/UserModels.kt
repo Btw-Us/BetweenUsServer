@@ -10,6 +10,14 @@
 
 package com.aatech.data.mysql.model
 
+import com.aatech.data.mysql.model.FriendsTable.createdAt
+import com.aatech.data.mysql.model.FriendsTable.id
+import com.aatech.data.mysql.model.FriendsTable.receiverId
+import com.aatech.data.mysql.model.FriendsTable.requestedAt
+import com.aatech.data.mysql.model.FriendsTable.requesterId
+import com.aatech.data.mysql.model.FriendsTable.respondedAt
+import com.aatech.data.mysql.model.FriendsTable.status
+import com.aatech.data.mysql.model.FriendsTable.updatedAt
 import com.aatech.data.mysql.model.UserPrivacySettingsTable.allowLastSeen
 import com.aatech.data.mysql.model.UserPrivacySettingsTable.allowProfilePicture
 import com.aatech.data.mysql.model.UserPrivacySettingsTable.allowReadReceipts
@@ -20,6 +28,7 @@ import com.aatech.data.mysql.model.UserStatusTable.userId
 import com.aatech.data.mysql.model.UserTable.createdAt
 import com.aatech.data.mysql.model.UserTable.email
 import com.aatech.data.mysql.model.UserTable.fullName
+import com.aatech.data.mysql.model.UserTable.isProfileActive
 import com.aatech.data.mysql.model.UserTable.lastLogin
 import com.aatech.data.mysql.model.UserTable.passwordHash
 import com.aatech.data.mysql.model.UserTable.profilePicture
@@ -52,11 +61,13 @@ import org.jetbrains.exposed.v1.core.Table
  *  @property createdAt The timestamp when the user was created.
  *  @property updatedAt The timestamp when the user was last updated, nullable.
  *  @property lastLogin The timestamp of the user's last login, nullable.
+ *  @property isProfileActive Indicates whether the user's profile is active, defaulting to true.
+ *
  *  @see UserPrivacySettingsTable The table storing user-specific privacy settings.
  *  @see UserStatusTable The table storing the current status of the user and the last time it was updated.
  */
 object UserTable : Table("user_db") {
-    val uuid = long("pk_user_id").autoIncrement()
+    val uuid = varchar("pk_user_id", 255)
     val username = varchar("username", 255).uniqueIndex()
     val fullName = varchar("full_name", 255)
         .nullable().default("Unknown User").check { it.isNotNull() }
@@ -66,6 +77,7 @@ object UserTable : Table("user_db") {
     val createdAt = long("created_at").default(System.currentTimeMillis())
     val updatedAt = long("updated_at").nullable()
     val lastLogin = long("last_login").nullable()
+    val isProfileActive = bool("is_profile_active").default(true)
 
     override val primaryKey: PrimaryKey?
         get() = PrimaryKey(uuid, name = "pk_user_id")
@@ -79,7 +91,7 @@ object UserTable : Table("user_db") {
 
 
 data class User(
-    val uuid: Long,
+    val uuid: String,
     val username: String,
     val fullName: String?,
     val email: String,
@@ -108,7 +120,7 @@ data class User(
  *
  */
 object UserPrivacySettingsTable : Table("user_privacy_settings") {
-    val userId = long("user_id").references(
+    val userId = varchar("pk_user_id", 255).references(
         UserTable.uuid,
         onDelete = ReferenceOption.CASCADE,
         onUpdate = ReferenceOption.CASCADE
@@ -130,7 +142,7 @@ enum class PrivacyVisibility {
 }
 
 data class UserPrivacySettings(
-    val userId: Long,
+    val userId: String,
     val allowProfilePicture: PrivacyVisibility = PrivacyVisibility.PUBLIC,
     val allowLastSeen: PrivacyVisibility = PrivacyVisibility.PUBLIC,
     val allowReadReceipts: Boolean = true
@@ -154,7 +166,7 @@ data class UserPrivacySettings(
  * @see UserTable The table storing user information, which this table references.
  */
 object UserStatusTable : Table("user_status") {
-    val userId = long("user_id").references(
+    val userId = varchar("pk_user_id", 255).references(
         UserTable.uuid,
         onDelete = ReferenceOption.CASCADE,
         onUpdate = ReferenceOption.CASCADE
@@ -175,8 +187,104 @@ enum class ActiveStatus {
 }
 
 data class UserStatus(
-    val userId: Long,
+    val userId: String,
     val status: String = ActiveStatus.OFFLINE.name,
     val lastUpdated: Long = System.currentTimeMillis()
 )
 
+/**
+ * Represents the friendship status in the application.
+ * This enum defines the possible states of a friendship between users,
+ * allowing for clear and consistent management of friendship relationships.
+ * The statuses include:
+ * - PENDING: A friend request has been sent but not yet accepted or declined.
+ * - ACCEPTED: The friend request has been accepted, establishing a friendship.
+ * - DECLINED: The friend request was declined by the receiver.
+ * - BLOCKED: One user has blocked the other, preventing further interaction.
+ * - CANCELLED: The friend request was cancelled by the requester before a response was received.
+ */
+enum class FriendshipStatus {
+    PENDING,
+    ACCEPTED,
+    DECLINED,
+    BLOCKED,
+    CANCELLED
+}
+
+/**
+ * Represents the friends table in the database.
+ * This table stores friendship records between users,
+ * including the requester and receiver user IDs,
+ * the status of the friendship,
+ * and timestamps for when the friendship was requested,
+ * responded to, created, and updated.
+ * The `id` field is a unique identifier for each friendship record,
+ * which is a UUID.
+ * The `requesterId` and `receiverId` fields are foreign keys referencing the `User` table,
+ * ensuring that each friendship is associated with valid users.
+ * The `status` field indicates the current status of the friendship,
+ * defaulting to "PENDING".
+ * The `requestedAt`, `respondedAt`, `createdAt`, and `updatedAt` fields store timestamps
+ * for various friendship activities.
+ * This structure allows for efficient management of friendships,
+ * enabling features such as friend requests, acceptance, and status tracking.
+ * @property id The unique identifier for the friendship record, a UUID.
+ * @property requesterId The unique identifier for the user who sent the friend request, referencing the `User` table.
+ * @property receiverId The unique identifier for the user who received the friend request, referencing the `User` table.
+ * @property status The current status of the friendship, defaulting to "PENDING".
+ * @property requestedAt The timestamp when the friend request was made, defaulting to the current time.
+ * @property respondedAt The timestamp when the friend request was responded to, nullable.
+ * @property createdAt The timestamp when the friendship record was created, defaulting to the current time.
+ * @property updatedAt The timestamp when the friendship record was last updated, nullable.
+ * @see UserTable The table storing user information, which this table references.
+ * @see FriendshipStatus The enum representing the possible statuses of a friendship.
+ *
+ */
+object FriendsTable : Table("friends_db") {
+    val id = varchar("pk_friend_id", 255) // UUID for unique friendship record
+    val requesterId = varchar("requester_id", 255).references(
+        UserTable.uuid,
+        onDelete = ReferenceOption.CASCADE,
+        onUpdate = ReferenceOption.CASCADE
+    )
+    val receiverId = varchar("receiver_id", 255).references(
+        UserTable.uuid,
+        onDelete = ReferenceOption.CASCADE,
+        onUpdate = ReferenceOption.CASCADE
+    )
+    val status = varchar("status", 30).default(FriendshipStatus.PENDING.name)
+    val requestedAt = long("requested_at").default(System.currentTimeMillis())
+    val respondedAt = long("responded_at").nullable()
+    val createdAt = long("created_at").default(System.currentTimeMillis())
+    val updatedAt = long("updated_at").nullable()
+
+    override val primaryKey: PrimaryKey?
+        get() = PrimaryKey(id, name = "pk_friend_id")
+
+    init {
+        // Prevent duplicate friend requests (both directions)
+        uniqueIndex("idx_unique_friendship", requesterId, receiverId)
+
+        // Indexes for efficient querying
+        index("idx_requester", false, requesterId)
+        index("idx_receiver", false, receiverId)
+        index("idx_status", false, status)
+        index("idx_requested_at", false, requestedAt)
+
+        // Composite indexes for common query patterns
+        index("idx_requester_status", false, requesterId, status)
+        index("idx_receiver_status", false, receiverId, status)
+
+    }
+}
+
+data class Friend(
+    val id: String, // UUID for unique friendship record
+    val requesterId: String,
+    val receiverId: String,
+    val status: FriendshipStatus = FriendshipStatus.PENDING,
+    val requestedAt: Long = System.currentTimeMillis(),
+    val respondedAt: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long? = null
+)

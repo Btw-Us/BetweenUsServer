@@ -38,12 +38,10 @@ class UserRepositoryImp : UserRepository {
         }
     }
 
-    override suspend fun getUserById(userId: Long): User? =
+    override suspend fun getUserById(userId: String): User? =
         UserTable.selectAll()
             .where { UserTable.uuid eq userId }
-            .mapNotNull { row ->
-                rowToUser(row)
-            }.singleOrNull()
+            .mapNotNull(::rowToUser).singleOrNull()
 
 }
 

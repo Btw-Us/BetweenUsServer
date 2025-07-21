@@ -19,6 +19,6 @@ interface UserRepository{
     ) : User
 
     suspend fun getUserById(
-        userId: Long
+        userId: String
     ): User?
 }

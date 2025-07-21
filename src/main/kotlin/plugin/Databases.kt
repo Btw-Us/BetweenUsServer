@@ -11,22 +11,19 @@
 package com.aatech.plugin
 
 import com.aatech.data.mysql.config.DatabaseConfig
-import com.aatech.data.mysql.model.AuthTokenTable
-import com.aatech.data.mysql.model.UserPrivacySettingsTable
-import com.aatech.data.mysql.model.UserStatusTable
-import com.aatech.data.mysql.model.UserTable
-import io.ktor.server.application.*
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import com.aatech.data.mysql.model.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.migration.MigrationUtils
 
-fun Application.configureDatabases() {
+fun configureDatabases() {
     val database = DatabaseConfig.init()
     transaction(database) {
-        SchemaUtils.create(
+        MigrationUtils.statementsRequiredForDatabaseMigration(
             AuthTokenTable,
             UserTable,
             UserPrivacySettingsTable,
-            UserStatusTable
+            UserStatusTable,
+            FriendsTable
         )
     }
 }

@@ -32,7 +32,7 @@ class UserStatusTableRepositoryImp : UserStatusTableRepository {
         }
     }
 
-    override suspend fun getUserById(userId: Long): UserStatus? {
+    override suspend fun getUserById(userId: String): UserStatus? {
         return UserStatusTable.selectAll()
             .where { UserStatusTable.userId eq userId }
             .mapNotNull { row ->

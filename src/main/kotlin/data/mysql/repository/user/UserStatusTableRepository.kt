@@ -18,6 +18,6 @@ interface UserStatusTableRepository {
     ) : UserStatus
 
     suspend fun getUserById(
-        userId: Long
+        userId: String
     ): UserStatus?
 }

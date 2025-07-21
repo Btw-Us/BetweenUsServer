@@ -16,7 +16,6 @@ import com.aatech.data.mysql.model.UserPrivacySettingsTable
 import com.aatech.data.mysql.repository.user.UserPrivacySettingsRepository
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class UserPrivacySettingsRepositoryImp : UserPrivacySettingsRepository {
@@ -34,7 +33,7 @@ class UserPrivacySettingsRepositoryImp : UserPrivacySettingsRepository {
         }
     }
 
-    override suspend fun getUserById(userId: Long): UserPrivacySettings? {
+    override suspend fun getUserById(userId: String): UserPrivacySettings? {
         return UserPrivacySettingsTable.selectAll()
             .where { UserPrivacySettingsTable.userId eq userId }
             .mapNotNull { row ->
