@@ -28,6 +28,6 @@ To get started, configure your environment variables:
 DATABASE_URL=         # Your MySQL JDBC connection string
 MYSQL_USER_NAME=      # Your MySQL username
 MYSQL_PASSWORD=       # Your MySQL password
-MYSQL_DATABASE=       # Your MySQL database name
+DATABASE_NAME=       # Your MySQL database name
 
 ```
