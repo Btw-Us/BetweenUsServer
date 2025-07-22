@@ -13,7 +13,7 @@ package com.aatech.utils
 fun getEnv(
     key: String,
     default: String? = null
-): String? {
+): String {
     val dotenv = io.github.cdimascio.dotenv.dotenv()
     return System.getenv(key)
         ?: dotenv[key]

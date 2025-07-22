@@ -29,5 +29,7 @@ DATABASE_URL=         # Your MySQL JDBC connection string
 MYSQL_USER_NAME=      # Your MySQL username
 MYSQL_PASSWORD=       # Your MySQL password
 DATABASE_NAME=       # Your MySQL database name
-
+MANGO_DB_USER_NAME=     # Your MongoDB username
+MANGO_DB_PASSWORD=      # Your MongoDB password
+MANGO_DB_URL =          # Your MongoDB connection string
 ```
