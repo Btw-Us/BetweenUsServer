@@ -10,6 +10,23 @@
 
 package com.aatech
 
+import com.aatech.plugin.configureAuthentication
+import com.aatech.plugin.configureMongoDB
+import com.aatech.plugin.configureMonitoring
+import com.aatech.plugin.configureMySqlDatabases
+import com.aatech.plugin.configureRouting
+import com.aatech.plugin.configureSerialization
+import io.ktor.server.application.Application
+
 fun main(args: Array<String>) {
     io.ktor.server.netty.EngineMain.main(args)
+}
+
+fun Application.mainModule() {
+    configureAuthentication()
+    configureRouting()
+    configureSerialization()
+    configureMonitoring()
+    configureMySqlDatabases()
+    configureMongoDB()
 }
