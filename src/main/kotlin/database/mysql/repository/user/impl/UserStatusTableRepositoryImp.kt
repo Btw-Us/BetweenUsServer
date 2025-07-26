@@ -12,13 +12,12 @@ package com.aatech.data.mysql.repository.user.impl
 
 import com.aatech.data.mysql.model.UserStatus
 import com.aatech.data.mysql.model.UserStatusTable
-import com.aatech.data.mysql.repository.user.UserStatusTableRepository
+import com.aatech.data.mysql.repository.user.UserStatusRepository
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
-class UserStatusTableRepositoryImp : UserStatusTableRepository {
+class UserStatusTableRepositoryImp : UserStatusRepository {
     override suspend fun createUser(userStatus: UserStatus): UserStatus {
         val query = UserStatusTable.insert {
             it[userId] = userStatus.userId

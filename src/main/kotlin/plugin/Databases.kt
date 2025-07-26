@@ -23,18 +23,23 @@ import java.nio.charset.StandardCharsets
 
 fun configureMySqlDatabases(): Database {
     val database = DatabaseConfig.init()
+    databaseConfiguration(database)
     return database
 }
 
 fun databaseConfiguration(database: Database) {
     transaction(database) {
-        MigrationUtils.statementsRequiredForDatabaseMigration(
+        val migrationStatements = MigrationUtils.statementsRequiredForDatabaseMigration(
             AuthTokenTable,
             UserTable,
             UserPrivacySettingsTable,
             UserStatusTable,
             FriendsTable
         )
+
+        migrationStatements.forEach { statement ->
+            exec(statement)
+        }
     }
 }
 

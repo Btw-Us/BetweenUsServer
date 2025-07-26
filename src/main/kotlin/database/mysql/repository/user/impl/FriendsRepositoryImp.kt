@@ -13,7 +13,7 @@ package com.aatech.database.mysql.repository.user.impl
 import com.aatech.data.mysql.model.Friend
 import com.aatech.data.mysql.model.FriendsTable
 import com.aatech.data.mysql.model.FriendshipStatus
-import com.aatech.data.mysql.repository.user.FriendsTableRepository
+import com.aatech.data.mysql.repository.user.FriendsRepository
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.and
@@ -21,7 +21,7 @@ import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.*
 import java.util.*
 
-class FriendsTableRepositoryImp : FriendsTableRepository {
+class FriendsRepositoryImp : FriendsRepository {
     override suspend fun addFriend(userId: String, friendId: String): Boolean {
         val query = FriendsTable.insert {
             it[id] = UUID.randomUUID().toString()

@@ -11,10 +11,9 @@
 package com.aatech.config.api_config
 
 import com.aatech.config.response.createErrorResponse
-import com.aatech.database.mysql.services.AuthTokenService
+import com.aatech.dagger.components.DaggerMySqlComponent
 import io.ktor.http.*
 import io.ktor.server.auth.*
-import io.ktor.server.plugins.di.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -35,7 +34,8 @@ suspend fun RoutingContext.checkAuth(
             )
             return
         }
-        val authTokenService: AuthTokenService by call.application.dependencies
+
+        val authTokenService = DaggerMySqlComponent.create().getAuthTokenService()
         // Validate the token
         val isValidToken = authTokenService.isTokenValid(tokenPrincipal.token)
         if (!isValidToken) {

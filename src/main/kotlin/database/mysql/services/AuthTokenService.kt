@@ -13,9 +13,9 @@ package com.aatech.database.mysql.services
 import com.aatech.data.mysql.model.AuthToken
 import com.aatech.data.mysql.model.GeneratedFrom
 import com.aatech.database.mysql.repository.auth_token.AuthTokenRepository
-import com.aatech.database.mysql.repository.auth_token.imp.AuthTokenRepositoryImp
+import javax.inject.Inject
 
-class AuthTokenService(
+class AuthTokenService @Inject constructor(
     private val authTokenRepository: AuthTokenRepository
 ) {
     suspend fun createAuthToken(
