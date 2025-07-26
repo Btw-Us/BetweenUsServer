@@ -8,35 +8,31 @@
  *
  */
 
-package com.aatech.data.mysql.config
+package com.aatech.database.mysql.config
 
 
-import com.aatech.data.mysql.model.AuthTokenTable
 import com.aatech.utils.getEnv
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.sql.Connection
 
 
 object DatabaseConfig {
 
-    fun init(): Database {
-        return Database.connect(createHikariDataSource()).apply {
+    fun init(): Database =
+        Database.connect(createHikariDataSource()).apply {
             TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
         }
-    }
+
 
     private fun createHikariDataSource(): HikariDataSource {
         val config = HikariConfig().apply {
             jdbcUrl = getEnv("DATABASE_URL")
-                ?: throw IllegalArgumentException("DATABASE_URL environment variable is not set.")
             driverClassName = "com.mysql.cj.jdbc.Driver"
-            username = getEnv("MYSQL_USER_NAME") ?: "root"
-            password = getEnv("MYSQL_PASSWORD") ?: "password"
+            username = getEnv("MYSQL_USER_NAME")
+            password = getEnv("MYSQL_PASSWORD")
             maximumPoolSize = 10
             minimumIdle = 2
             isAutoCommit = false

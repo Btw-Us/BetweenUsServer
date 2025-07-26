@@ -8,21 +8,22 @@
  *
  */
 
-package com.aatech.data.mysql.repository.auth_token
+package com.aatech.database.mysql.repository.auth_token
 
 import com.aatech.data.mysql.model.AuthToken
 
 interface AuthTokenRepository {
     suspend fun createAuthToken(
-        model : AuthToken
-    ) : AuthToken
+        model: AuthToken
+    ): AuthToken
+
     suspend fun getAuthTokenById(id: Int): AuthToken?
 
     suspend fun getAuthTokenByToken(token: String): AuthToken?
 
     suspend fun deleteAuthTokenByToken(token: String): Boolean
 
-    suspend fun deleteAllAuthTokensByUserId() : Boolean
+    suspend fun deleteAllAuthTokensByUserId(): Boolean
 
     suspend fun isTokenValid(token: String): Boolean
 

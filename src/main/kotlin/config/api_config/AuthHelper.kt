@@ -11,9 +11,10 @@
 package com.aatech.config.api_config
 
 import com.aatech.config.response.createErrorResponse
-import com.aatech.data.mysql.services.AuthTokenService
+import com.aatech.database.mysql.services.AuthTokenService
 import io.ktor.http.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.di.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -34,7 +35,7 @@ suspend fun RoutingContext.checkAuth(
             )
             return
         }
-        val authTokenService = AuthTokenService()
+        val authTokenService: AuthTokenService by call.application.dependencies
         // Validate the token
         val isValidToken = authTokenService.isTokenValid(tokenPrincipal.token)
         if (!isValidToken) {

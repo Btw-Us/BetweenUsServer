@@ -8,7 +8,7 @@
  *
  */
 
-package com.aatech.data.mysql.repository.user.impl
+package com.aatech.database.mysql.repository.user.impl
 
 import com.aatech.data.mysql.model.Friend
 import com.aatech.data.mysql.model.FriendsTable

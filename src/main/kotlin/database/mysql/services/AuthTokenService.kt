@@ -8,15 +8,15 @@
  *
  */
 
-package com.aatech.data.mysql.services
+package com.aatech.database.mysql.services
 
 import com.aatech.data.mysql.model.AuthToken
 import com.aatech.data.mysql.model.GeneratedFrom
-import com.aatech.data.mysql.repository.auth_token.AuthTokenRepository
-import com.aatech.data.mysql.repository.auth_token.imp.AuthTokenRepositoryImp
+import com.aatech.database.mysql.repository.auth_token.AuthTokenRepository
+import com.aatech.database.mysql.repository.auth_token.imp.AuthTokenRepositoryImp
 
 class AuthTokenService(
-    private val authTokenRepository: AuthTokenRepository = AuthTokenRepositoryImp()
+    private val authTokenRepository: AuthTokenRepository
 ) {
     suspend fun createAuthToken(
         model: AuthToken = AuthToken(

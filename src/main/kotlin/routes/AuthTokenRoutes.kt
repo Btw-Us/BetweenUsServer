@@ -11,14 +11,15 @@
 package com.aatech.routes
 
 import com.aatech.config.api_config.AuthRoutes
-import com.aatech.data.mysql.services.AuthTokenService
+import com.aatech.database.mysql.services.AuthTokenService
 import io.ktor.http.*
+import io.ktor.server.plugins.di.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Routing.authToken() {
     post(AuthRoutes.GenerateToken.path) {
-        val authTokenService = AuthTokenService()
+        val authTokenService: AuthTokenService by call.application.dependencies
         val authToken = authTokenService.createAuthToken()
         call.respond(
             HttpStatusCode.Created,

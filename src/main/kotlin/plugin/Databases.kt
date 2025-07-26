@@ -10,18 +10,23 @@
 
 package com.aatech.plugin
 
-import com.aatech.data.mysql.config.DatabaseConfig
 import com.aatech.data.mysql.model.*
+import com.aatech.database.mysql.config.DatabaseConfig
 import com.aatech.utils.getEnv
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.migration.MigrationUtils
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
-fun configureMySqlDatabases() {
+fun configureMySqlDatabases(): Database {
     val database = DatabaseConfig.init()
+    return database
+}
+
+fun databaseConfiguration(database: Database) {
     transaction(database) {
         MigrationUtils.statementsRequiredForDatabaseMigration(
             AuthTokenTable,

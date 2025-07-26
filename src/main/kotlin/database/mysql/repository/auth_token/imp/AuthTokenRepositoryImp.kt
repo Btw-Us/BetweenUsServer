@@ -8,15 +8,16 @@
  *
  */
 
-package com.aatech.data.mysql.repository.auth_token.imp
+package com.aatech.database.mysql.repository.auth_token.imp
 
 import com.aatech.data.mysql.model.AuthToken
 import com.aatech.data.mysql.model.AuthTokenTable
 import com.aatech.data.mysql.model.GeneratedFrom
-import com.aatech.data.mysql.repository.auth_token.AuthTokenRepository
+import com.aatech.database.mysql.repository.auth_token.AuthTokenRepository
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.isNotNull
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
