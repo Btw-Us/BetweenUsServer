@@ -30,6 +30,8 @@ dependencies {
     implementation("io.ktor:ktor-server-auth:3.2.2")
     implementation("io.ktor:ktor-client-auth:3.2.2")
     implementation("io.ktor:ktor-server-status-pages:3.2.2")
+    implementation("io.insert-koin:koin-ktor:3.5.6")
+    implementation("io.insert-koin:koin-logger-slf4j:3.5.6")
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")

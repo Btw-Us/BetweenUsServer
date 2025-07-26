@@ -10,19 +10,6 @@
 
 package com.aatech
 
-import com.aatech.plugin.*
-import io.ktor.server.application.*
-
 fun main(args: Array<String>) {
     io.ktor.server.netty.EngineMain.main(args)
-}
-
-fun Application.module() {
-    configureAuthentication()
-    configureRouting()
-    configureSerialization()
-    configureMonitoring()
-    configureFrameworks()
-    configureMySqlDatabases()
-    configureMongoDB()
 }

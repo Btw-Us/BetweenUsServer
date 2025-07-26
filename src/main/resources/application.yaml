@@ -1,6 +1,8 @@
 ktor:
   application:
     modules:
-      - com.aatech.ApplicationKt.module
+      - com.aatech.module.MainModuleKt.mainModule
+      - com.aatech.module.MySqlModuleKt.mySqlModule
+      - com.aatech.module.MondoDbModuleKt.mondoDbModule
   deployment:
     port: 8080

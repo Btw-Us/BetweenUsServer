@@ -11,8 +11,8 @@
 
 **BetweenUsServer** is the backend powering the chat application. It uses:
 
-* **MySQL** – for structured relational data such as user accounts, authentication, and metadata.
-* **MongoDB** – for flexible storage of unstructured or semi-structured data like chat messages and message threads.
+* **MySQL** – for structured relational database such as user accounts, authentication, and metadata.
+* **MongoDB** – for flexible storage of unstructured or semi-structured database like chat messages and message threads.
 
 ---
 
