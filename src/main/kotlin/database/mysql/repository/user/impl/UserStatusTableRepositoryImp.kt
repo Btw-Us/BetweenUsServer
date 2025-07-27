@@ -10,8 +10,8 @@
 
 package com.aatech.data.mysql.repository.user.impl
 
-import com.aatech.data.mysql.model.UserStatus
-import com.aatech.data.mysql.model.UserStatusTable
+import com.aatech.database.mysql.model.UserStatus
+import com.aatech.database.mysql.model.UserStatusTable
 import com.aatech.data.mysql.repository.user.UserStatusRepository
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.jdbc.insert

@@ -10,12 +10,11 @@
 
 package com.aatech.data.mysql.repository.user.impl
 
-import com.aatech.data.mysql.model.User
-import com.aatech.data.mysql.model.UserTable
+import com.aatech.database.mysql.model.User
+import com.aatech.database.mysql.model.UserTable
 import com.aatech.data.mysql.repository.user.UserRepository
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class UserRepositoryImp : UserRepository {
@@ -26,10 +25,11 @@ class UserRepositoryImp : UserRepository {
             it[fullName] = user.fullName
             it[email] = user.email
             it[profilePicture] = user.profilePicture
-            it[passwordHash] = user.passwordHash
             it[createdAt] = user.createdAt
             it[updatedAt] = user.updatedAt
             it[lastLogin] = user.lastLogin
+            it[isProfileActive] = user.isProfileActive
+            it[clientId] = user.clientId
         }
         if (query.insertedCount > 0) {
             return user.copy(uuid = query[UserTable.uuid])
@@ -52,9 +52,10 @@ fun rowToUser(row: ResultRow): User {
         fullName = row[UserTable.fullName],
         email = row[UserTable.email],
         profilePicture = row[UserTable.profilePicture],
-        passwordHash = row[UserTable.passwordHash],
         createdAt = row[UserTable.createdAt],
         updatedAt = row[UserTable.updatedAt],
-        lastLogin = row[UserTable.lastLogin]
+        lastLogin = row[UserTable.lastLogin],
+        isProfileActive = row[UserTable.isProfileActive],
+        clientId = row[UserTable.clientId]
     )
 }

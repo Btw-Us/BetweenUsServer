@@ -12,6 +12,10 @@ package com.aatech.plugin
 
 import com.aatech.data.mysql.model.*
 import com.aatech.database.mysql.config.DatabaseConfig
+import com.aatech.database.mysql.model.FriendsTable
+import com.aatech.database.mysql.model.UserPrivacySettingsTable
+import com.aatech.database.mysql.model.UserStatusTable
+import com.aatech.database.mysql.model.UserTable
 import com.aatech.utils.getEnv
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoDatabase

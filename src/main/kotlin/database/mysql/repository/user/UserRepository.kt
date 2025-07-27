@@ -10,7 +10,7 @@
 
 package com.aatech.data.mysql.repository.user
 
-import com.aatech.data.mysql.model.User
+import com.aatech.database.mysql.model.User
 
 
 interface UserRepository{

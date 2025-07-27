@@ -10,9 +10,9 @@
 
 package com.aatech.data.mysql.repository.user.impl
 
-import com.aatech.data.mysql.model.PrivacyVisibility
-import com.aatech.data.mysql.model.UserPrivacySettings
-import com.aatech.data.mysql.model.UserPrivacySettingsTable
+import com.aatech.database.mysql.model.PrivacyVisibility
+import com.aatech.database.mysql.model.UserPrivacySettings
+import com.aatech.database.mysql.model.UserPrivacySettingsTable
 import com.aatech.data.mysql.repository.user.UserPrivacySettingsRepository
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.jdbc.insert

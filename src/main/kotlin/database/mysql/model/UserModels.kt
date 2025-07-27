@@ -8,33 +8,33 @@
  *
  */
 
-package com.aatech.data.mysql.model
+package com.aatech.database.mysql.model
 
-import com.aatech.data.mysql.model.FriendsTable.createdAt
-import com.aatech.data.mysql.model.FriendsTable.id
-import com.aatech.data.mysql.model.FriendsTable.receiverId
-import com.aatech.data.mysql.model.FriendsTable.requestedAt
-import com.aatech.data.mysql.model.FriendsTable.requesterId
-import com.aatech.data.mysql.model.FriendsTable.respondedAt
-import com.aatech.data.mysql.model.FriendsTable.status
-import com.aatech.data.mysql.model.FriendsTable.updatedAt
-import com.aatech.data.mysql.model.UserPrivacySettingsTable.allowLastSeen
-import com.aatech.data.mysql.model.UserPrivacySettingsTable.allowProfilePicture
-import com.aatech.data.mysql.model.UserPrivacySettingsTable.allowReadReceipts
-import com.aatech.data.mysql.model.UserPrivacySettingsTable.userId
-import com.aatech.data.mysql.model.UserStatusTable.lastUpdated
-import com.aatech.data.mysql.model.UserStatusTable.status
-import com.aatech.data.mysql.model.UserStatusTable.userId
-import com.aatech.data.mysql.model.UserTable.createdAt
-import com.aatech.data.mysql.model.UserTable.email
-import com.aatech.data.mysql.model.UserTable.fullName
-import com.aatech.data.mysql.model.UserTable.isProfileActive
-import com.aatech.data.mysql.model.UserTable.lastLogin
-import com.aatech.data.mysql.model.UserTable.passwordHash
-import com.aatech.data.mysql.model.UserTable.profilePicture
-import com.aatech.data.mysql.model.UserTable.updatedAt
-import com.aatech.data.mysql.model.UserTable.username
-import com.aatech.data.mysql.model.UserTable.uuid
+import com.aatech.database.mysql.model.FriendsTable.createdAt
+import com.aatech.database.mysql.model.FriendsTable.id
+import com.aatech.database.mysql.model.FriendsTable.receiverId
+import com.aatech.database.mysql.model.FriendsTable.requestedAt
+import com.aatech.database.mysql.model.FriendsTable.requesterId
+import com.aatech.database.mysql.model.FriendsTable.respondedAt
+import com.aatech.database.mysql.model.FriendsTable.status
+import com.aatech.database.mysql.model.FriendsTable.updatedAt
+import com.aatech.database.mysql.model.UserPrivacySettingsTable.allowLastSeen
+import com.aatech.database.mysql.model.UserPrivacySettingsTable.allowProfilePicture
+import com.aatech.database.mysql.model.UserPrivacySettingsTable.allowReadReceipts
+import com.aatech.database.mysql.model.UserPrivacySettingsTable.userId
+import com.aatech.database.mysql.model.UserStatusTable.lastUpdated
+import com.aatech.database.mysql.model.UserStatusTable.status
+import com.aatech.database.mysql.model.UserStatusTable.userId
+import com.aatech.database.mysql.model.UserTable.createdAt
+import com.aatech.database.mysql.model.UserTable.email
+import com.aatech.database.mysql.model.UserTable.fullName
+import com.aatech.database.mysql.model.UserTable.isProfileActive
+import com.aatech.database.mysql.model.UserTable.lastLogin
+import com.aatech.database.mysql.model.UserTable.profilePicture
+import com.aatech.database.mysql.model.UserTable.updatedAt
+import com.aatech.database.mysql.model.UserTable.username
+import com.aatech.database.mysql.model.UserTable.uuid
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
 
@@ -68,12 +68,12 @@ import org.jetbrains.exposed.v1.core.Table
  */
 object UserTable : Table("user_db") {
     val uuid = varchar("pk_user_id", 255)
+    val clientId = varchar("client_id", 255)
     val username = varchar("username", 255).uniqueIndex()
     val fullName = varchar("full_name", 255)
         .nullable().default("Unknown User").check { it.isNotNull() }
     val email = varchar("email", 255).uniqueIndex()
     val profilePicture = varchar("profile_picture", 255).nullable()
-    val passwordHash = varchar("password", 255)
     val createdAt = long("created_at").default(System.currentTimeMillis())
     val updatedAt = long("updated_at").nullable()
     val lastLogin = long("last_login").nullable()
@@ -85,21 +85,25 @@ object UserTable : Table("user_db") {
     init {
         index("idx_username", true, username)
         index("idx_email", true, email)
-        index("idx_password", false, passwordHash)
     }
 }
 
-
+@Serializable
 data class User(
     val uuid: String,
+    val clientId: String,
     val username: String,
-    val fullName: String?,
     val email: String,
+    val fullName: String?,
     val profilePicture: String?,
-    val passwordHash: String,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long? = null,
-    val lastLogin: Long? = null
+    val lastLogin: Long? = null,
+    val isProfileActive: Boolean = true,
+
+    val deviceInfo : String? = null, // Optional field for device information
+    val deviceToken: String? = null, // Optional field for device token
+    val securityCode : String? = null // Optional field for security code
 )
 
 /**
@@ -121,7 +125,7 @@ data class User(
  */
 object UserPrivacySettingsTable : Table("user_privacy_settings") {
     val userId = varchar("pk_user_id", 255).references(
-        UserTable.uuid,
+        uuid,
         onDelete = ReferenceOption.CASCADE,
         onUpdate = ReferenceOption.CASCADE
     )
@@ -167,7 +171,7 @@ data class UserPrivacySettings(
  */
 object UserStatusTable : Table("user_status") {
     val userId = varchar("pk_user_id", 255).references(
-        UserTable.uuid,
+        uuid,
         onDelete = ReferenceOption.CASCADE,
         onUpdate = ReferenceOption.CASCADE
     )
@@ -186,6 +190,7 @@ enum class ActiveStatus {
     ONLINE, OFFLINE
 }
 
+@Serializable
 data class UserStatus(
     val userId: String,
     val status: String = ActiveStatus.OFFLINE.name,
@@ -243,12 +248,12 @@ enum class FriendshipStatus {
 object FriendsTable : Table("friends_db") {
     val id = varchar("pk_friend_id", 255) // UUID for unique friendship record
     val requesterId = varchar("requester_id", 255).references(
-        UserTable.uuid,
+        uuid,
         onDelete = ReferenceOption.CASCADE,
         onUpdate = ReferenceOption.CASCADE
     )
     val receiverId = varchar("receiver_id", 255).references(
-        UserTable.uuid,
+        uuid,
         onDelete = ReferenceOption.CASCADE,
         onUpdate = ReferenceOption.CASCADE
     )
@@ -278,6 +283,7 @@ object FriendsTable : Table("friends_db") {
     }
 }
 
+@Serializable
 data class Friend(
     val id: String, // UUID for unique friendship record
     val requesterId: String,

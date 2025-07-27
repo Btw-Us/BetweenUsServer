@@ -51,4 +51,7 @@ dependencies {
     implementation("org.mongodb:mongodb-driver-kotlin-coroutine:5.0.0")
 
 
+    implementation("org.bouncycastle:bcprov-jdk18on:1.81")
+
+
 }

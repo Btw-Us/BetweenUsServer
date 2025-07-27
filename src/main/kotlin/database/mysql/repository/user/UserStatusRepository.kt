@@ -10,7 +10,7 @@
 
 package com.aatech.data.mysql.repository.user
 
-import com.aatech.data.mysql.model.UserStatus
+import com.aatech.database.mysql.model.UserStatus
 
 interface UserStatusRepository {
     suspend fun createUser(

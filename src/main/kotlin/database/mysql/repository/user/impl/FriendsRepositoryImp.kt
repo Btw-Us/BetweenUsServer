@@ -10,9 +10,9 @@
 
 package com.aatech.database.mysql.repository.user.impl
 
-import com.aatech.data.mysql.model.Friend
-import com.aatech.data.mysql.model.FriendsTable
-import com.aatech.data.mysql.model.FriendshipStatus
+import com.aatech.database.mysql.model.Friend
+import com.aatech.database.mysql.model.FriendsTable
+import com.aatech.database.mysql.model.FriendshipStatus
 import com.aatech.data.mysql.repository.user.FriendsRepository
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq

@@ -10,7 +10,7 @@
 
 package com.aatech.data.mysql.repository.user
 
-import com.aatech.data.mysql.model.UserPrivacySettings
+import com.aatech.database.mysql.model.UserPrivacySettings
 
 interface UserPrivacySettingsRepository {
     suspend fun createUser(

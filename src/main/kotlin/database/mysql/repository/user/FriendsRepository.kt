@@ -10,8 +10,8 @@
 
 package com.aatech.data.mysql.repository.user
 
-import com.aatech.data.mysql.model.Friend
-import com.aatech.data.mysql.model.FriendshipStatus
+import com.aatech.database.mysql.model.Friend
+import com.aatech.database.mysql.model.FriendshipStatus
 
 interface FriendsRepository {
     suspend fun addFriend(
