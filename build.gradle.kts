@@ -28,13 +28,22 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("io.ktor:ktor-server-config-yaml")
     implementation("io.ktor:ktor-server-auth:3.2.2")
-    implementation("io.ktor:ktor-client-auth:3.2.2")
+    implementation("io.ktor:ktor-server-auth-jwt:3.2.2")
     implementation("io.ktor:ktor-server-status-pages:3.2.2")
     implementation("io.insert-koin:koin-ktor:3.5.6")
     implementation("io.insert-koin:koin-logger-slf4j:3.5.6")
+    implementation("io.ktor:ktor-client-logging:3.2.2")
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
+
+    implementation("io.ktor:ktor-client-core:3.2.2")
+    implementation("io.ktor:ktor-client-cio:3.2.2")
+    implementation("io.ktor:ktor-client-auth:3.2.2")
+    implementation("io.ktor:ktor-client-content-negotiation")
+    implementation("ch.qos.logback:logback-classic")
+
+
 
 
     implementation( "com.google.dagger:dagger:2.57")

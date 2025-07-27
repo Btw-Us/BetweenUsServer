@@ -1,12 +1,18 @@
 package com.aatech.plugin
 
 import com.aatech.config.api_config.CURRENT_VERSION
+import com.aatech.routes.allLogInRoutes
 import com.aatech.routes.authToken
 import com.aatech.routes.checkHealth
 import com.aatech.routes.personalChatRoutes
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.json.Json
 
 const val HelloMessage = """
     🚀 BetweenUsServer Chat API v${CURRENT_VERSION}
@@ -30,12 +36,14 @@ const val HelloMessage = """
 """
 
 
-fun Application.configureRouting() {
+fun Application.configureRouting(
+) {
     routing {
         hello()
         checkHealth()
         authToken()
         personalChatRoutes()
+        allLogInRoutes()
     }
 }
 

@@ -17,13 +17,15 @@
 package com.aatech.plugin
 
 import com.aatech.config.response.createErrorResponse
+import io.ktor.client.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 
-fun Application.configureAuthentication() {
+fun Application.configureAuthentication(
+) {
     install(Authentication) {
         bearer("auth-bearer") {
             realm = "Bearer Authentication"
@@ -40,6 +42,7 @@ fun Application.configureAuthentication() {
                 }
             }
         }
+        configureJWTAuthentication()
     }
     install(StatusPages) {
         status(HttpStatusCode.Unauthorized) {
