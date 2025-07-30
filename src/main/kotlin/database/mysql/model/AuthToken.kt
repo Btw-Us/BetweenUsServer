@@ -8,10 +8,9 @@
  *
  */
 
-package com.aatech.data.mysql.model
+package com.aatech.database.mysql.model
 
 import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.isNotNull
 import org.jetbrains.exposed.v1.core.Table
 import java.util.*
 

@@ -10,7 +10,7 @@
 
 package com.aatech.database.mysql.repository.auth_token
 
-import com.aatech.data.mysql.model.AuthToken
+import com.aatech.database.mysql.model.AuthToken
 
 interface AuthTokenRepository {
     suspend fun createAuthToken(

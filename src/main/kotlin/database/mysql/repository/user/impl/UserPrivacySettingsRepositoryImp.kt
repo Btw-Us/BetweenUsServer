@@ -8,13 +8,12 @@
  *
  */
 
-package com.aatech.data.mysql.repository.user.impl
+package com.aatech.database.mysql.repository.user.impl
 
-import com.aatech.database.mysql.model.PrivacyVisibility
-import com.aatech.database.mysql.model.UserPrivacySettings
+import com.aatech.database.mysql.mapper.rowToUserPrivacySettings
 import com.aatech.database.mysql.model.UserPrivacySettingsTable
-import com.aatech.data.mysql.repository.user.UserPrivacySettingsRepository
-import org.jetbrains.exposed.v1.core.ResultRow
+import com.aatech.database.mysql.model.entity.UserPrivacySettings
+import com.aatech.database.mysql.repository.user.UserPrivacySettingsRepository
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
@@ -36,17 +35,6 @@ class UserPrivacySettingsRepositoryImp : UserPrivacySettingsRepository {
     override suspend fun getUserById(userId: String): UserPrivacySettings? {
         return UserPrivacySettingsTable.selectAll()
             .where { UserPrivacySettingsTable.userId eq userId }
-            .mapNotNull { row ->
-                rowToUserPrivacySettings(row)
-            }.singleOrNull()
+            .mapNotNull(::rowToUserPrivacySettings).singleOrNull()
     }
-}
-
-fun rowToUserPrivacySettings(row: ResultRow): UserPrivacySettings {
-    return UserPrivacySettings(
-        userId = row[UserPrivacySettingsTable.userId],
-        allowProfilePicture = PrivacyVisibility.valueOf(row[UserPrivacySettingsTable.allowProfilePicture]),
-        allowLastSeen = PrivacyVisibility.valueOf(row[UserPrivacySettingsTable.allowLastSeen]),
-        allowReadReceipts = row[UserPrivacySettingsTable.allowReadReceipts]
-    )
 }

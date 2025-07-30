@@ -8,15 +8,15 @@
  *
  */
 
-package com.aatech.data.mysql.repository.user
+package com.aatech.database.mysql.repository.user
 
-import com.aatech.database.mysql.model.User
+import com.aatech.database.mysql.model.entity.User
 
 
-interface UserRepository{
+interface UserRepository {
     suspend fun createUser(
-        user : User
-    ) : User
+        user: User
+    ): User
 
     suspend fun getUserById(
         userId: String

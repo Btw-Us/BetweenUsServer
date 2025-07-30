@@ -8,12 +8,12 @@
  *
  */
 
-package com.aatech.data.mysql.repository.user.impl
+package com.aatech.database.mysql.repository.user.impl
 
-import com.aatech.database.mysql.model.UserStatus
+import com.aatech.database.mysql.mapper.rowToUserStatus
 import com.aatech.database.mysql.model.UserStatusTable
-import com.aatech.data.mysql.repository.user.UserStatusRepository
-import org.jetbrains.exposed.v1.core.ResultRow
+import com.aatech.database.mysql.model.entity.UserStatus
+import com.aatech.database.mysql.repository.user.UserStatusRepository
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
@@ -34,16 +34,7 @@ class UserStatusTableRepositoryImp : UserStatusRepository {
     override suspend fun getUserById(userId: String): UserStatus? {
         return UserStatusTable.selectAll()
             .where { UserStatusTable.userId eq userId }
-            .mapNotNull { row ->
-                rowToUserStatus(row)
-            }.singleOrNull()
+            .mapNotNull(::rowToUserStatus).singleOrNull()
     }
 }
 
-fun rowToUserStatus(row: ResultRow): UserStatus {
-    return UserStatus(
-        userId = row[UserStatusTable.userId],
-        status = row[UserStatusTable.status],
-        lastUpdated = row[UserStatusTable.lastUpdated]
-    )
-}

@@ -8,14 +8,14 @@
  *
  */
 
-package com.aatech.data.mysql.repository.user
+package com.aatech.database.mysql.repository.user
 
-import com.aatech.database.mysql.model.UserStatus
+import com.aatech.database.mysql.model.entity.UserStatus
 
 interface UserStatusRepository {
     suspend fun createUser(
         userStatus: UserStatus
-    ) : UserStatus
+    ): UserStatus
 
     suspend fun getUserById(
         userId: String

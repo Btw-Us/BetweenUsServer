@@ -10,8 +10,8 @@
 
 package com.aatech.plugin
 
-import com.aatech.data.mysql.model.*
 import com.aatech.database.mysql.config.DatabaseConfig
+import com.aatech.database.mysql.model.AuthTokenTable
 import com.aatech.database.mysql.model.FriendsTable
 import com.aatech.database.mysql.model.UserPrivacySettingsTable
 import com.aatech.database.mysql.model.UserStatusTable

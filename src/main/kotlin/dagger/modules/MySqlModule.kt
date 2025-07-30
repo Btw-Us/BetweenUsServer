@@ -1,12 +1,12 @@
 package com.aatech.dagger.modules
 
-import com.aatech.data.mysql.repository.user.FriendsRepository
-import com.aatech.data.mysql.repository.user.UserPrivacySettingsRepository
-import com.aatech.data.mysql.repository.user.UserRepository
-import com.aatech.data.mysql.repository.user.UserStatusRepository
-import com.aatech.data.mysql.repository.user.impl.UserPrivacySettingsRepositoryImp
-import com.aatech.data.mysql.repository.user.impl.UserRepositoryImp
-import com.aatech.data.mysql.repository.user.impl.UserStatusTableRepositoryImp
+import com.aatech.database.mysql.repository.user.FriendsRepository
+import com.aatech.database.mysql.repository.user.UserPrivacySettingsRepository
+import com.aatech.database.mysql.repository.user.UserRepository
+import com.aatech.database.mysql.repository.user.UserStatusRepository
+import com.aatech.database.mysql.repository.user.impl.UserPrivacySettingsRepositoryImp
+import com.aatech.database.mysql.repository.user.impl.UserRepositoryImp
+import com.aatech.database.mysql.repository.user.impl.UserStatusTableRepositoryImp
 import com.aatech.database.mysql.repository.auth_token.AuthTokenRepository
 import com.aatech.database.mysql.repository.auth_token.imp.AuthTokenRepositoryImp
 import com.aatech.database.mysql.repository.user.impl.FriendsRepositoryImp

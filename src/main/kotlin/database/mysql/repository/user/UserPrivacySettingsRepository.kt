@@ -8,14 +8,14 @@
  *
  */
 
-package com.aatech.data.mysql.repository.user
+package com.aatech.database.mysql.repository.user
 
-import com.aatech.database.mysql.model.UserPrivacySettings
+import com.aatech.database.mysql.model.entity.UserPrivacySettings
 
 interface UserPrivacySettingsRepository {
     suspend fun createUser(
         userPrivacySettings: UserPrivacySettings
-    ) : UserPrivacySettings
+    ): UserPrivacySettings
 
     suspend fun getUserById(
         userId: String

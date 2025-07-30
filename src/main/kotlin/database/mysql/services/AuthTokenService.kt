@@ -10,8 +10,8 @@
 
 package com.aatech.database.mysql.services
 
-import com.aatech.data.mysql.model.AuthToken
-import com.aatech.data.mysql.model.GeneratedFrom
+import com.aatech.database.mysql.model.AuthToken
+import com.aatech.database.mysql.model.GeneratedFrom
 import com.aatech.database.mysql.repository.auth_token.AuthTokenRepository
 import javax.inject.Inject
 

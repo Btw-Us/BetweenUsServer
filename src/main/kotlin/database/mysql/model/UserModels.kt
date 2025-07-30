@@ -57,7 +57,6 @@ import org.jetbrains.exposed.v1.core.Table
  *  @property email The unique email address of the user.
  *  @property fullName The full name of the user, nullable.
  *  @property profilePicture The URL of the user's profile picture, nullable.
- *  @property passwordHash The hashed password of the user.
  *  @property createdAt The timestamp when the user was created.
  *  @property updatedAt The timestamp when the user was last updated, nullable.
  *  @property lastLogin The timestamp of the user's last login, nullable.
@@ -88,23 +87,6 @@ object UserTable : Table("user_db") {
     }
 }
 
-@Serializable
-data class User(
-    val uuid: String,
-    val clientId: String,
-    val username: String,
-    val email: String,
-    val fullName: String?,
-    val profilePicture: String?,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long? = null,
-    val lastLogin: Long? = null,
-    val isProfileActive: Boolean = true,
-
-    val deviceInfo : String? = null, // Optional field for device information
-    val deviceToken: String? = null, // Optional field for device token
-    val securityCode : String? = null // Optional field for security code
-)
 
 /**
  * Represents the user privacy settings table in the database.
@@ -145,12 +127,7 @@ enum class PrivacyVisibility {
     PUBLIC, PRIVATE, FRIENDS_ONLY
 }
 
-data class UserPrivacySettings(
-    val userId: String,
-    val allowProfilePicture: PrivacyVisibility = PrivacyVisibility.PUBLIC,
-    val allowLastSeen: PrivacyVisibility = PrivacyVisibility.PUBLIC,
-    val allowReadReceipts: Boolean = true
-)
+
 
 /**
  * Represents the user status table in the database.
@@ -190,12 +167,56 @@ enum class ActiveStatus {
     ONLINE, OFFLINE
 }
 
-@Serializable
-data class UserStatus(
-    val userId: String,
-    val status: String = ActiveStatus.OFFLINE.name,
-    val lastUpdated: Long = System.currentTimeMillis()
-)
+
+/**
+ * Represents the user devices table in the database.
+ * This table stores information about devices that users are logged into,
+ * including device IDs, names, public keys, encrypted key material,
+ * and the last time the device was used.
+ * The `userId` field is a foreign key referencing the `User` table,
+ * ensuring that each device is associated with a valid user.
+ * The `deviceId` field is unique for each user-device pair,
+ * allowing for efficient tracking of multiple devices per user.
+ * The `devicePublicKey` field stores the public key of the device,
+ * while `encryptedKeyMaterial` stores sensitive data encrypted with the user's master key.
+ * The `keyDerivationSalt` is used for key derivation purposes.
+ * The `lastUsedAt` field stores the timestamp of the last time the device was used,
+ * defaulting to the current time when the record is created.
+ * This structure allows for efficient management of user devices,
+ * enabling features such as device management and security controls.
+ * @property userId The unique identifier for the user, referencing the `User` table.
+ * @property deviceId The unique identifier for the device, specific to each user.
+ * @property deviceName The name of the device, e.g., "John's iPhone".
+ * @property devicePublicKey The public key of the device, used for secure communication.
+ * @property encryptedKeyMaterial Encrypted key material, stored securely.
+ * @property keyDerivationSalt Salt used for key derivation, enhancing security.
+ * @property lastUsedAt The timestamp of the last time the device was used, defaulting to the current time.
+ * @see UserTable The table storing user information, which this table references.
+ */
+object UserDevicesTable : Table("user_logged_in_devices") {
+    val userId = varchar("user_id", 255).references(
+        UserTable.uuid,
+        onDelete = ReferenceOption.CASCADE,
+        onUpdate = ReferenceOption.CASCADE
+    )
+    val deviceId = varchar("device_id", 255)
+    val deviceName = varchar("device_name", 255)
+    val devicePublicKey = text("device_public_key") // Store public key only
+    val encryptedKeyMaterial = text("encrypted_key_material") // Encrypted with user's master key
+    val keyDerivationSalt = varchar("key_derivation_salt", 64)
+    val lastUsedAt = long("last_used_at").default(System.currentTimeMillis())
+
+    override val primaryKey: PrimaryKey?
+        get() = PrimaryKey(userId, deviceId, name = "pk_user_logged_in_devices")
+
+    init {
+        index("idx_user_id", true, userId)
+        index("idx_device_id", true, deviceId)
+        index("idx_last_used_at", false, lastUsedAt)
+        uniqueIndex("idx_unique_device_per_user", userId, deviceId)
+    }
+}
+
 
 /**
  * Represents the friendship status in the application.
@@ -283,14 +304,3 @@ object FriendsTable : Table("friends_db") {
     }
 }
 
-@Serializable
-data class Friend(
-    val id: String, // UUID for unique friendship record
-    val requesterId: String,
-    val receiverId: String,
-    val status: FriendshipStatus = FriendshipStatus.PENDING,
-    val requestedAt: Long = System.currentTimeMillis(),
-    val respondedAt: Long? = null,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long? = null
-)

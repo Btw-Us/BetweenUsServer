@@ -10,10 +10,11 @@
 
 package com.aatech.database.mysql.repository.user.impl
 
-import com.aatech.database.mysql.model.Friend
+import com.aatech.database.mysql.mapper.rowToFriend
 import com.aatech.database.mysql.model.FriendsTable
 import com.aatech.database.mysql.model.FriendshipStatus
-import com.aatech.data.mysql.repository.user.FriendsRepository
+import com.aatech.database.mysql.model.entity.Friend
+import com.aatech.database.mysql.repository.user.FriendsRepository
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.and
@@ -71,15 +72,3 @@ class FriendsRepositoryImp : FriendsRepository {
 
 }
 
-fun rowToFriend(row: ResultRow): Friend {
-    return Friend(
-        id = row[FriendsTable.id],
-        requesterId = row[FriendsTable.requesterId],
-        receiverId = row[FriendsTable.receiverId],
-        status = FriendshipStatus.valueOf(row[FriendsTable.status]),
-        createdAt = row[FriendsTable.createdAt],
-        updatedAt = row[FriendsTable.updatedAt],
-        requestedAt = row[FriendsTable.requestedAt],
-        respondedAt = row[FriendsTable.respondedAt]
-    )
-}

@@ -1,8 +1,24 @@
+/*
+ * Copyright © 2025 ayaan. All rights reserved.
+ *
+ * This work is the exclusive property of ayaan.
+ *
+ * Created: July 30, 2025 10:35 PM
+ * Author: ayaan
+ * Project: BetweenUsServe
+ *
+ * This software is provided "as is", without warranty of any kind, express or implied.
+ * You are free to use, modify, and distribute this work for any purpose.
+ *
+ * For questions or contributions, contact: ayaan35200@gmail.com
+ */
+
 package com.aatech.routes
 
 import com.aatech.config.api_config.LoginRoutes
 import com.aatech.config.response.createErrorResponse
 import com.aatech.plugin.fetchUserInfo
+import com.aatech.utils.generateUuidFromSub
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
@@ -39,7 +55,8 @@ fun Routing.logIn() {
             }
             try {
                 val response = fetchUserInfo(tokenResponse.accessToken)
-                call.respondText("Welcome ${response.name}! Email: ${response.email}")
+                val uuid = response.sub.generateUuidFromSub()
+
             } catch (e: Exception) {
                 call.respond(
                     status = HttpStatusCode.BadRequest,

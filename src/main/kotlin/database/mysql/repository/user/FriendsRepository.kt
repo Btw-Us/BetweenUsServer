@@ -8,10 +8,10 @@
  *
  */
 
-package com.aatech.data.mysql.repository.user
+package com.aatech.database.mysql.repository.user
 
-import com.aatech.database.mysql.model.Friend
 import com.aatech.database.mysql.model.FriendshipStatus
+import com.aatech.database.mysql.model.entity.Friend
 
 interface FriendsRepository {
     suspend fun addFriend(

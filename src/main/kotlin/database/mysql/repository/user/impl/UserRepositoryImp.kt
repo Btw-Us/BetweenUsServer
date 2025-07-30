@@ -8,11 +8,12 @@
  *
  */
 
-package com.aatech.data.mysql.repository.user.impl
+package com.aatech.database.mysql.repository.user.impl
 
-import com.aatech.database.mysql.model.User
+import com.aatech.database.mysql.mapper.rowToUser
 import com.aatech.database.mysql.model.UserTable
-import com.aatech.data.mysql.repository.user.UserRepository
+import com.aatech.database.mysql.model.entity.User
+import com.aatech.database.mysql.repository.user.UserRepository
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -45,17 +46,3 @@ class UserRepositoryImp : UserRepository {
 
 }
 
-fun rowToUser(row: ResultRow): User {
-    return User(
-        uuid = row[UserTable.uuid],
-        username = row[UserTable.username],
-        fullName = row[UserTable.fullName],
-        email = row[UserTable.email],
-        profilePicture = row[UserTable.profilePicture],
-        createdAt = row[UserTable.createdAt],
-        updatedAt = row[UserTable.updatedAt],
-        lastLogin = row[UserTable.lastLogin],
-        isProfileActive = row[UserTable.isProfileActive],
-        clientId = row[UserTable.clientId]
-    )
-}
