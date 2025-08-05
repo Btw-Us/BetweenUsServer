@@ -17,8 +17,10 @@ package com.aatech.routes
 
 import com.aatech.config.api_config.LoginRoutes
 import com.aatech.config.response.createErrorResponse
+import com.aatech.dagger.components.DaggerMySqlComponent
+import com.aatech.database.mysql.repository.user.UserRepository
 import com.aatech.plugin.fetchUserInfo
-import com.aatech.utils.generateUuidFromSub
+import com.aatech.plugin.toUserEntity
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
@@ -55,8 +57,12 @@ fun Routing.logIn() {
             }
             try {
                 val response = fetchUserInfo(tokenResponse.accessToken)
-                val uuid = response.sub.generateUuidFromSub()
-
+                val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+                val loggedUser = authTokenService.createUser(response.toUserEntity())
+                call.respond(
+                    status = HttpStatusCode.OK,
+                    message = loggedUser
+                )
             } catch (e: Exception) {
                 call.respond(
                     status = HttpStatusCode.BadRequest,

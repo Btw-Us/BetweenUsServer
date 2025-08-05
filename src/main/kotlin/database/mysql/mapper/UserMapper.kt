@@ -32,14 +32,13 @@ fun rowToUser(row: ResultRow): User {
     return User(
         uuid = row[UserTable.uuid],
         username = row[UserTable.username],
-        fullName = row[UserTable.fullName],
+        fullName = row[UserTable.fullName] ?: "No Name",
         email = row[UserTable.email],
         profilePicture = row[UserTable.profilePicture],
         createdAt = row[UserTable.createdAt],
         updatedAt = row[UserTable.updatedAt],
         lastLogin = row[UserTable.lastLogin],
         isProfileActive = row[UserTable.isProfileActive],
-        clientId = row[UserTable.clientId]
     )
 }
 

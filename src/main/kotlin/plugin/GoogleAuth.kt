@@ -16,6 +16,8 @@
 package com.aatech.plugin
 
 import com.aatech.config.api_config.LoginRoutes
+import com.aatech.database.mysql.model.entity.User
+import com.aatech.utils.generateUuidFromSub
 import com.aatech.utils.getEnv
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -71,7 +73,7 @@ fun AuthenticationConfig.configureGoogleAuth(
 
 
 @Serializable
-data class UserInfo(
+data class GoogleUserInfo(
     val sub: String,
     val name: String? = null,
     val picture: String? = null,
@@ -82,7 +84,16 @@ data class UserInfo(
 )
 
 
-suspend fun getUserInfo(accessToken: String): UserInfo? {
+fun GoogleUserInfo.toUserEntity(): User = User(
+    uuid = email?.generateUuidFromSub().toString(),
+    username = "",
+    email = email ?: throw IllegalArgumentException("Email is required"),
+    fullName = name ?: "",
+    profilePicture = picture,
+)
+
+
+suspend fun getUserInfo(accessToken: String): GoogleUserInfo? {
     val client = HttpClient(CIO) {
         install(ContentNegotiation) {
             json(Json {
@@ -111,7 +122,7 @@ suspend fun getUserInfo(accessToken: String): UserInfo? {
         println("Response headers: ${response.headers}")
 
         if (response.status.isSuccess()) {
-            response.body<UserInfo>()
+            response.body<GoogleUserInfo>()
         } else {
             // Print response body for more details about the error
             val errorBody = response.bodyAsText()
@@ -128,7 +139,7 @@ suspend fun getUserInfo(accessToken: String): UserInfo? {
 }
 
 
-suspend fun fetchUserInfo(accessToken: String): UserInfo {
+suspend fun fetchUserInfo(accessToken: String): GoogleUserInfo {
     val oAuthClient = HttpClient(CIO) {
         install(ContentNegotiation) {
             json(Json {
@@ -157,12 +168,9 @@ suspend fun fetchUserInfo(accessToken: String): UserInfo {
             }
         }
 
-
-        println("Response status: ${response.status}")
-
         when {
             response.status.isSuccess() -> {
-                response.body<UserInfo>()
+                response.body<GoogleUserInfo>()
             }
 
             response.status == HttpStatusCode.Unauthorized -> {

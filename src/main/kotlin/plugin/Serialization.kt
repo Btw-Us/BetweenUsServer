@@ -29,11 +29,7 @@ fun Application.configureSerialization() {
             prettyPrint = true
             isLenient = true
             ignoreUnknownKeys = true // Ignore unknown keys in JSON
+            encodeDefaults = true
         })
-    }
-    routing {
-        get("/json/kotlinx-serialization") {
-            call.respond(mapOf("hello" to "world"))
-        }
     }
 }

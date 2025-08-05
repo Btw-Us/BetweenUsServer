@@ -5,17 +5,22 @@ import com.aatech.database.mysql.model.FriendshipStatus
 import com.aatech.database.mysql.model.PrivacyVisibility
 import kotlinx.serialization.Serializable
 
+
+@Serializable
+data class UserLogInResponse(
+    val user: User, val isNewUser: Boolean = false
+)
+
 @Serializable
 data class User(
     val uuid: String,
-    val clientId: String,
     val username: String,
     val email: String,
-    val fullName: String?,
+    val fullName: String,
     val profilePicture: String?,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long? = null,
-    val lastLogin: Long? = null,
+    val updatedAt: Long = System.currentTimeMillis(),
+    val lastLogin: Long = System.currentTimeMillis(),
     val isProfileActive: Boolean = true,
 )
 

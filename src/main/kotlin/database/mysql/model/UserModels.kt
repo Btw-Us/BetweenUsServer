@@ -67,15 +67,14 @@ import org.jetbrains.exposed.v1.core.Table
  */
 object UserTable : Table("user_db") {
     val uuid = varchar("pk_user_id", 255)
-    val clientId = varchar("client_id", 255)
     val username = varchar("username", 255).uniqueIndex()
     val fullName = varchar("full_name", 255)
         .nullable().default("Unknown User").check { it.isNotNull() }
     val email = varchar("email", 255).uniqueIndex()
     val profilePicture = varchar("profile_picture", 255).nullable()
     val createdAt = long("created_at").default(System.currentTimeMillis())
-    val updatedAt = long("updated_at").nullable()
-    val lastLogin = long("last_login").nullable()
+    val updatedAt = long("updated_at").default(System.currentTimeMillis())
+    val lastLogin = long("last_login").default(System.currentTimeMillis())
     val isProfileActive = bool("is_profile_active").default(true)
 
     override val primaryKey: PrimaryKey?

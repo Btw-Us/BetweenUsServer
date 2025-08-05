@@ -11,12 +11,13 @@
 package com.aatech.database.mysql.repository.user
 
 import com.aatech.database.mysql.model.entity.User
+import com.aatech.database.mysql.model.entity.UserLogInResponse
 
 
 interface UserRepository {
     suspend fun createUser(
         user: User
-    ): User
+    ): UserLogInResponse
 
     suspend fun getUserById(
         userId: String
