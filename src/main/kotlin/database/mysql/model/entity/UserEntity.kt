@@ -5,6 +5,7 @@ import com.aatech.database.mysql.model.FriendshipStatus
 import com.aatech.database.mysql.model.PrivacyVisibility
 import com.aatech.utils.generateUuidFromSub
 import kotlinx.serialization.Serializable
+import kotlin.random.Random
 
 
 @Serializable
@@ -17,7 +18,7 @@ data class RegisterUserRequest(
 fun RegisterUserRequest.toUserEntity(): User {
     return User(
         uuid = email.generateUuidFromSub().toString(),
-        username = "",
+        username = "${fullName.replace(" ", "").lowercase()}@${Random(System.currentTimeMillis()).nextInt()}",
         email = email.lowercase(),
         fullName = fullName,
         profilePicture = profilePicture

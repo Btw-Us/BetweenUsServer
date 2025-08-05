@@ -34,6 +34,7 @@ import io.ktor.server.auth.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.random.Random
 
 fun AuthenticationConfig.configureGoogleAuth(
 ) {
@@ -86,7 +87,7 @@ data class GoogleUserInfo(
 
 fun GoogleUserInfo.toUserEntity(): User = User(
     uuid = email?.generateUuidFromSub().toString(),
-    username = "",
+    username = "${name?.replace(" ", "")?.lowercase()}@${Random(System.currentTimeMillis()).nextInt()}",
     email = email ?: throw IllegalArgumentException("Email is required"),
     fullName = name ?: "",
     profilePicture = picture,
