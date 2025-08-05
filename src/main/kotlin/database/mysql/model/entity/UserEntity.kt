@@ -3,8 +3,26 @@ package com.aatech.database.mysql.model.entity
 import com.aatech.database.mysql.model.ActiveStatus
 import com.aatech.database.mysql.model.FriendshipStatus
 import com.aatech.database.mysql.model.PrivacyVisibility
+import com.aatech.utils.generateUuidFromSub
 import kotlinx.serialization.Serializable
 
+
+@Serializable
+data class RegisterUserRequest(
+    val email: String,
+    val fullName: String,
+    val profilePicture: String? = null,
+)
+
+fun RegisterUserRequest.toUserEntity(): User {
+    return User(
+        uuid = email.generateUuidFromSub().toString(),
+        username = "",
+        email = email.lowercase(),
+        fullName = fullName,
+        profilePicture = profilePicture
+    )
+}
 
 @Serializable
 data class UserLogInResponse(

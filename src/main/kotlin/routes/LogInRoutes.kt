@@ -16,27 +16,58 @@
 package com.aatech.routes
 
 import com.aatech.config.api_config.LoginRoutes
+import com.aatech.config.api_config.checkAuth
 import com.aatech.config.response.createErrorResponse
 import com.aatech.dagger.components.DaggerMySqlComponent
+import com.aatech.database.mysql.model.entity.RegisterUserRequest
+import com.aatech.database.mysql.model.entity.toUserEntity
 import com.aatech.database.mysql.repository.user.UserRepository
 import com.aatech.plugin.fetchUserInfo
 import com.aatech.plugin.toUserEntity
 import io.ktor.http.*
 import io.ktor.server.auth.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 
 fun Routing.allLogInRoutes() {
     userRoutes()
-    logIn()
+    logInWithOAuth()
+    logInWithGoogle()
     checkAuth()
 }
 
+fun Routing.logInWithGoogle() {
+    authenticate("auth-bearer") {
+        post(LoginRoutes.LogInWithGoogle.path) {
+            checkAuth { authParam ->
+                val user = call.receive<RegisterUserRequest>()
+                val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+                try {
+                    val loggedUser = authTokenService.createUser(user.toUserEntity())
+                    call.respond(
+                        status = HttpStatusCode.OK,
+                        message = loggedUser
+                    )
+                } catch (e: Exception) {
+                    call.respond(
+                        status = HttpStatusCode.BadRequest,
+                        message = createErrorResponse(
+                            code = HttpStatusCode.BadRequest.value,
+                            message = "Failed to log in with Google.",
+                            details = e.message ?: "Unknown error occurred while logging in with Google."
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
 
-fun Routing.logIn() {
+fun Routing.logInWithOAuth() {
     authenticate("auth-oauth-google") {
-        get(LoginRoutes.LogInOrRegister.path) {
+        get(LoginRoutes.LogInWithOAuth.path) {
         }
         get(LoginRoutes.OAuthLoginCallback.path) {
             val tokenResponse = call.principal<OAuthAccessTokenResponse.OAuth2>()

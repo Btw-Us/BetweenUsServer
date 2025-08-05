@@ -22,7 +22,8 @@ sealed class PersonalChatRoutes(val path: String) {
 
 
 sealed class LoginRoutes(val path: String) {
-    object LogInOrRegister : LoginRoutes("$USER/login")
+    object LogInWithOAuth : LoginRoutes("$USER/login")
     object OAuthLoginCallback : LoginRoutes("/callback")
+    object LogInWithGoogle : LoginRoutes("$USER/login/google")
     object LogOut : LoginRoutes("$USER/logout")
 }
