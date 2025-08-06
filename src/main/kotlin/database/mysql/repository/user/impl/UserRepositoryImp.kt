@@ -75,10 +75,15 @@ class UserRepositoryImp : UserRepository {
         }
     }
 
-    override suspend fun getUserById(userId: String): User? =
-        UserTable.selectAll()
-            .where { UserTable.uuid eq userId }
-            .mapNotNull(::rowToUser).singleOrNull()
+    override suspend fun getUserByEmail(email: String): User? = withContext(Dispatchers.IO) {
+        transaction {
+            UserTable.selectAll()
+                .where { UserTable.email eq email }
+                .mapNotNull(::rowToUser)
+                .singleOrNull()
+        }
+    }
+
 
 }
 

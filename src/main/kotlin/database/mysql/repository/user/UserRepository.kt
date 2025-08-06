@@ -19,7 +19,7 @@ interface UserRepository {
         user: User
     ): UserLogInResponse
 
-    suspend fun getUserById(
-        userId: String
+    suspend fun getUserByEmail(
+        email: String
     ): User?
 }

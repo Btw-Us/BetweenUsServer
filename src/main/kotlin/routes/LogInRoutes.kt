@@ -20,6 +20,7 @@ import com.aatech.config.api_config.checkAuth
 import com.aatech.config.response.createErrorResponse
 import com.aatech.dagger.components.DaggerMySqlComponent
 import com.aatech.database.mysql.model.entity.RegisterUserRequest
+import com.aatech.database.mysql.model.entity.UserLogInResponse
 import com.aatech.database.mysql.model.entity.toUserEntity
 import com.aatech.database.mysql.repository.user.UserRepository
 import com.aatech.plugin.fetchUserInfo
@@ -32,10 +33,8 @@ import io.ktor.server.routing.*
 
 
 fun Routing.allLogInRoutes() {
-    userRoutes()
     logInWithOAuth()
     logInWithGoogle()
-    checkAuth()
 }
 
 fun Routing.logInWithGoogle() {
@@ -47,7 +46,7 @@ fun Routing.logInWithGoogle() {
                 try {
                     val loggedUser = authTokenService.createUser(user.toUserEntity())
                     call.respond(
-                        status = HttpStatusCode.OK,
+                        status = if (loggedUser.isNewUser) HttpStatusCode.Created else HttpStatusCode.OK,
                         message = loggedUser
                     )
                 } catch (e: Exception) {
@@ -89,10 +88,25 @@ fun Routing.logInWithOAuth() {
             try {
                 val response = fetchUserInfo(tokenResponse.accessToken)
                 val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
-                val loggedUser = authTokenService.createUser(response.toUserEntity())
+                val loggedUser = authTokenService.getUserByEmail(response.toUserEntity().email)
+                if (loggedUser == null) {
+                    call.respond(
+                        status = HttpStatusCode.NotFound,
+                        message = createErrorResponse(
+                            code = HttpStatusCode.NotFound.value,
+                            message = "User not found.",
+                            details = "To use this service, please register first from the mobile app."
+                        )
+                    )
+                    return@get
+                }
+
                 call.respond(
                     status = HttpStatusCode.OK,
-                    message = loggedUser
+                    message = UserLogInResponse(
+                        loggedUser,
+                        false
+                    )
                 )
             } catch (e: Exception) {
                 call.respond(
@@ -108,27 +122,27 @@ fun Routing.logInWithOAuth() {
     }
 }
 
-fun Routing.checkAuth() {
-    get("/test-google-auth") {
-        val accessToken = call.request.queryParameters["token"]
-        if (accessToken != null) {
-            try {
-                val userInfo = fetchUserInfo(accessToken)
-                call.respond(userInfo)
-            } catch (e: Exception) {
-                call.respond(HttpStatusCode.BadRequest, e.message ?: "Unknown error")
-            }
-        } else {
-            call.respond(HttpStatusCode.BadRequest, "Please provide token parameter")
-        }
-    }
-}
-
-fun Routing.userRoutes() {
-//    post(LoginRoutes.LogInOrRegister.path) {
-//        checkAuth { checkAuth ->
-//            val loggedUser = call.receive<User>()
-////            TODO: Implement login or register logic from here
+//fun Routing.checkAuth() {
+//    get("/test-google-auth") {
+//        val accessToken = call.request.queryParameters["token"]
+//        if (accessToken != null) {
+//            try {
+//                val userInfo = fetchUserInfo(accessToken)
+//                call.respond(userInfo)
+//            } catch (e: Exception) {
+//                call.respond(HttpStatusCode.BadRequest, e.message ?: "Unknown error")
+//            }
+//        } else {
+//            call.respond(HttpStatusCode.BadRequest, "Please provide token parameter")
 //        }
 //    }
-}
+//}
+
+//fun Routing.userRoutes() {
+////    post(LoginRoutes.LogInOrRegister.path) {
+////        checkAuth { checkAuth ->
+////            val loggedUser = call.receive<User>()
+//////            TODO: Implement login or register logic from here
+////        }
+////    }
+//}

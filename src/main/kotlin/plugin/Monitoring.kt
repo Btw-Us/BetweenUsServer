@@ -23,7 +23,7 @@ import org.slf4j.event.Level
 
 fun Application.configureMonitoring() {
     install(CallLogging) {
-        level = Level.DEBUG
-        filter { call -> call.request.path().startsWith("/") }
+        level = Level.INFO
+        filter { call -> call.request.path().startsWith("/api/v1") }
     }
 }
