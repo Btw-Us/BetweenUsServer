@@ -17,9 +17,11 @@ package com.aatech.routes
 
 import com.aatech.config.api_config.LoginRoutes
 import com.aatech.config.api_config.checkAuth
+import com.aatech.config.api_config.checkDeviceIntegrity
 import com.aatech.config.response.createErrorResponse
 import com.aatech.dagger.components.DaggerMySqlComponent
 import com.aatech.database.mysql.model.entity.RegisterUserRequest
+import com.aatech.database.mysql.model.entity.SetUpUserProfile
 import com.aatech.database.mysql.model.entity.UserLogInResponse
 import com.aatech.database.mysql.model.entity.toUserEntity
 import com.aatech.database.mysql.repository.user.UserRepository
@@ -35,24 +37,28 @@ import io.ktor.server.routing.*
 fun Routing.allLogInRoutes() {
     logInWithOAuth()
     logInWithGoogle()
+    setUpUserProfile()
 }
 
+//TODO: check the logic for data insertion and update
 fun Routing.logInWithGoogle() {
     authenticate("auth-bearer") {
         post(LoginRoutes.LogInWithGoogle.path) {
-            checkAuth { authParam ->
+            checkDeviceIntegrity { authParam ->
                 val user = call.receive<RegisterUserRequest>()
                 val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
                 try {
-                    val loggedUser = authTokenService.createUser(user.toUserEntity())
+                    val loggedUser = authTokenService.createUser(
+                        user.toUserEntity(),
+                        deviceInfo = Pair(authParam.deviceId!!, authParam.deviceModel!!)
+                    )
                     call.respond(
                         status = if (loggedUser.isNewUser) HttpStatusCode.Created else HttpStatusCode.OK,
                         message = loggedUser
                     )
                 } catch (e: Exception) {
                     call.respond(
-                        status = HttpStatusCode.BadRequest,
-                        message = createErrorResponse(
+                        status = HttpStatusCode.BadRequest, message = createErrorResponse(
                             code = HttpStatusCode.BadRequest.value,
                             message = "Failed to log in with Google.",
                             details = e.message ?: "Unknown error occurred while logging in with Google."
@@ -64,16 +70,61 @@ fun Routing.logInWithGoogle() {
     }
 }
 
+fun Routing.setUpUserProfile() {
+    authenticate("auth-bearer") {
+        post(LoginRoutes.SetUpUserProfile.path) {
+            checkDeviceIntegrity { authParam ->
+                val setUpUserProfile = call.receive<SetUpUserProfile>()
+                if (authParam.userId != setUpUserProfile.userId) {
+                    call.respond(
+                        status = HttpStatusCode.Unauthorized, message = createErrorResponse(
+                            code = HttpStatusCode.Unauthorized.value,
+                            message = "Unauthorized access. User ID mismatch.",
+                            details = "The user ID in the request does not match the authenticated user ID."
+                        )
+                    )
+                    return@checkDeviceIntegrity
+                }
+//                TODO:Check the loggedIn Device info
+                val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+                try {
+                    val loggedUser = authTokenService.setUpProfile(setUpUserProfile)
+                    call.respond(
+                        status = HttpStatusCode.OK, message = loggedUser
+                    )
+                } catch (e: Exception) {
+                    call.respond(
+                        status = HttpStatusCode.BadRequest, message = createErrorResponse(
+                            code = HttpStatusCode.BadRequest.value,
+                            message = "Failed to set up user profile.",
+                            details = e.message ?: "Unknown error occurred while setting up user profile."
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+fun Routing.checkUserPassword() {
+    authenticate("auth-bearer") {
+        post(LoginRoutes.CheckPassword.path) {
+            checkAuth { authParam ->
+
+            }
+        }
+    }
+}
+
 fun Routing.logInWithOAuth() {
     authenticate("auth-oauth-google") {
-        get(LoginRoutes.LogInWithOAuth.path) {
-        }
+        get(LoginRoutes.LogInWithOAuth.path) {}
         get(LoginRoutes.OAuthLoginCallback.path) {
             val tokenResponse = call.principal<OAuthAccessTokenResponse.OAuth2>()
             if (tokenResponse == null) {
                 call.respond(
-                    status = HttpStatusCode.Unauthorized,
-                    message = createErrorResponse(
+                    status = HttpStatusCode.Unauthorized, message = createErrorResponse(
                         code = HttpStatusCode.Unauthorized.value,
                         message = "Unauthorized access. Please provide a valid OAuth token.",
                         details = """
@@ -91,8 +142,7 @@ fun Routing.logInWithOAuth() {
                 val loggedUser = authTokenService.getUserByEmail(response.toUserEntity().email)
                 if (loggedUser == null) {
                     call.respond(
-                        status = HttpStatusCode.NotFound,
-                        message = createErrorResponse(
+                        status = HttpStatusCode.NotFound, message = createErrorResponse(
                             code = HttpStatusCode.NotFound.value,
                             message = "User not found.",
                             details = "To use this service, please register first from the mobile app."
@@ -102,16 +152,13 @@ fun Routing.logInWithOAuth() {
                 }
 
                 call.respond(
-                    status = HttpStatusCode.OK,
-                    message = UserLogInResponse(
-                        loggedUser,
-                        false
+                    status = HttpStatusCode.OK, message = UserLogInResponse(
+                        loggedUser, false
                     )
                 )
             } catch (e: Exception) {
                 call.respond(
-                    status = HttpStatusCode.BadRequest,
-                    message = createErrorResponse(
+                    status = HttpStatusCode.BadRequest, message = createErrorResponse(
                         code = HttpStatusCode.BadRequest.value,
                         message = "Failed to fetch user information.",
                         details = e.message ?: "Unknown error occurred while fetching user info."

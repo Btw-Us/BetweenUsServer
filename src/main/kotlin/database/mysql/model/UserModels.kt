@@ -18,6 +18,16 @@ import com.aatech.database.mysql.model.FriendsTable.requesterId
 import com.aatech.database.mysql.model.FriendsTable.respondedAt
 import com.aatech.database.mysql.model.FriendsTable.status
 import com.aatech.database.mysql.model.FriendsTable.updatedAt
+import com.aatech.database.mysql.model.UserDevicesTable.deviceId
+import com.aatech.database.mysql.model.UserDevicesTable.deviceName
+import com.aatech.database.mysql.model.UserDevicesTable.devicePublicKey
+import com.aatech.database.mysql.model.UserDevicesTable.encryptedKeyMaterial
+import com.aatech.database.mysql.model.UserDevicesTable.keyDerivationSalt
+import com.aatech.database.mysql.model.UserDevicesTable.lastUsedAt
+import com.aatech.database.mysql.model.UserDevicesTable.userId
+import com.aatech.database.mysql.model.UserPasswordTable.lastPasswordChange
+import com.aatech.database.mysql.model.UserPasswordTable.passwordHash
+import com.aatech.database.mysql.model.UserPasswordTable.userId
 import com.aatech.database.mysql.model.UserPrivacySettingsTable.allowLastSeen
 import com.aatech.database.mysql.model.UserPrivacySettingsTable.allowProfilePicture
 import com.aatech.database.mysql.model.UserPrivacySettingsTable.allowReadReceipts
@@ -34,7 +44,6 @@ import com.aatech.database.mysql.model.UserTable.profilePicture
 import com.aatech.database.mysql.model.UserTable.updatedAt
 import com.aatech.database.mysql.model.UserTable.username
 import com.aatech.database.mysql.model.UserTable.uuid
-import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
 
@@ -88,6 +97,40 @@ object UserTable : Table("user_db") {
 
 
 /**
+ * Represents the user passwords table in the database.
+ * This table stores the password hash for each user, along with the last password change timestamp.
+ * The `userId` field is a foreign key referencing the `User` table,
+ * ensuring that each password is associated with a valid user.
+ * The `passwordHash` field is a string that stores the hashed password,
+ * which is nullable and defaults to null.
+ * The `lastPasswordChange` field stores the timestamp of the last password change,
+ * defaulting to the current time when the record is created.
+ * This structure allows for secure storage of user passwords,
+ * enabling features such as password updates and security checks.
+ *  @property userId The unique identifier for the user, referencing the `User` table.
+ *  @property passwordHash The hashed password of the user, nullable and defaults to null.
+ *  @property lastPasswordChange The timestamp of the last password change, defaulting to the current time.
+ *  @see UserTable The table storing user information, which this table references.
+ */
+object UserPasswordTable : Table("user_passwords") {
+    val userId = varchar("pk_user_id", 255).references(
+        UserTable.uuid,
+        onDelete = ReferenceOption.CASCADE,
+        onUpdate = ReferenceOption.CASCADE
+    )
+    val passwordHash = varchar("password_hash", 255).nullable().default(null)
+    val lastPasswordChange = long("last_password_change").default(System.currentTimeMillis())
+
+    override val primaryKey: PrimaryKey?
+        get() = PrimaryKey(userId, name = "pk_user_passwords")
+
+    init {
+        index("idx_user_id", true, userId)
+    }
+}
+
+
+/**
  * Represents the user privacy settings table in the database.
  * This table stores user-specific privacy settings,
  * such as whether to allow profile pictures, last seen status, and read receipts.
@@ -125,7 +168,6 @@ object UserPrivacySettingsTable : Table("user_privacy_settings") {
 enum class PrivacyVisibility {
     PUBLIC, PRIVATE, FRIENDS_ONLY
 }
-
 
 
 /**
@@ -200,9 +242,9 @@ object UserDevicesTable : Table("user_logged_in_devices") {
     )
     val deviceId = varchar("device_id", 255)
     val deviceName = varchar("device_name", 255)
-    val devicePublicKey = text("device_public_key") // Store public key only
-    val encryptedKeyMaterial = text("encrypted_key_material") // Encrypted with user's master key
-    val keyDerivationSalt = varchar("key_derivation_salt", 64)
+    val devicePublicKey = text("device_public_key").default("")
+    val encryptedKeyMaterial = text("encrypted_key_material").default("")
+    val keyDerivationSalt = varchar("key_derivation_salt", 64).default("")
     val lastUsedAt = long("last_used_at").default(System.currentTimeMillis())
 
     override val primaryKey: PrimaryKey?

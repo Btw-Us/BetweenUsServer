@@ -25,5 +25,7 @@ sealed class LoginRoutes(val path: String) {
     object LogInWithOAuth : LoginRoutes("$USER/login")
     object OAuthLoginCallback : LoginRoutes("/callback")
     object LogInWithGoogle : LoginRoutes("$USER/login/google")
+    object SetUpUserProfile : LoginRoutes("${LogInWithOAuth.path}/setup-profile")
+    object CheckPassword : LoginRoutes("${LogInWithOAuth.path}/check-password")
     object LogOut : LoginRoutes("$USER/logout")
 }

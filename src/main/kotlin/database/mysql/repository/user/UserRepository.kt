@@ -10,16 +10,41 @@
 
 package com.aatech.database.mysql.repository.user
 
+import com.aatech.database.mysql.model.entity.SetUpUserProfile
 import com.aatech.database.mysql.model.entity.User
 import com.aatech.database.mysql.model.entity.UserLogInResponse
 
 
 interface UserRepository {
+    /**
+     * Creates a new user in the database.
+     * If the user already exists, it updates the last login time.
+     * @param user The user to be created or updated.
+     * @param deviceInfo Pair containing device ID and device name.
+     * @return UserLogInResponse containing user details and a flag indicating if it's a new
+     */
     suspend fun createUser(
-        user: User
+        user: User,
+        deviceInfo : Pair<String, String>
     ): UserLogInResponse
 
     suspend fun getUserByEmail(
         email: String
     ): User?
+
+
+    suspend fun isProfileSetUpDone(
+        userId: String
+    ): Boolean
+
+
+    suspend fun setUpProfile(
+        setUpUserProfile: SetUpUserProfile
+    ): UserLogInResponse
+
+
+    suspend fun checkUserPassword(
+        userId: String,
+        passwordHash: String
+    ): Boolean
 }

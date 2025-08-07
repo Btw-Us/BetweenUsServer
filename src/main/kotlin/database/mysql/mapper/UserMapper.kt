@@ -16,16 +16,8 @@
 
 package com.aatech.database.mysql.mapper
 
-import com.aatech.database.mysql.model.FriendsTable
-import com.aatech.database.mysql.model.FriendshipStatus
-import com.aatech.database.mysql.model.PrivacyVisibility
-import com.aatech.database.mysql.model.UserPrivacySettingsTable
-import com.aatech.database.mysql.model.UserStatusTable
-import com.aatech.database.mysql.model.UserTable
-import com.aatech.database.mysql.model.entity.Friend
-import com.aatech.database.mysql.model.entity.User
-import com.aatech.database.mysql.model.entity.UserPrivacySettings
-import com.aatech.database.mysql.model.entity.UserStatus
+import com.aatech.database.mysql.model.*
+import com.aatech.database.mysql.model.entity.*
 import org.jetbrains.exposed.v1.core.ResultRow
 
 fun rowToUser(row: ResultRow): User {
@@ -39,6 +31,14 @@ fun rowToUser(row: ResultRow): User {
         updatedAt = row[UserTable.updatedAt],
         lastLogin = row[UserTable.lastLogin],
         isProfileActive = row[UserTable.isProfileActive],
+    )
+}
+
+fun rowToUserPassword(row: ResultRow): UserPassword {
+    return UserPassword(
+        userId = row[UserPasswordTable.userId],
+        passwordHash = row[UserPasswordTable.passwordHash],
+        lastPasswordChange = row[UserPasswordTable.lastPasswordChange]
     )
 }
 

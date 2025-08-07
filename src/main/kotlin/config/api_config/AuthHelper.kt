@@ -67,7 +67,7 @@ suspend fun RoutingContext.checkAuth(
             clientVersion = call.request.header("X-Client-Version"),
             deviceId = call.request.header("X-Device-Id"),
             session = call.request.header("X-Session"),
-            deviceName = call.request.header("X-Device-Name")
+            deviceModel = call.request.header("X-Device-Model")
         )
 
         // Validate authentication parameters
@@ -98,6 +98,47 @@ suspend fun RoutingContext.checkAuth(
                 code = HttpStatusCode.InternalServerError.value,
                 details = e.message ?: "An unexpected error occurred"
             )
+        )
+    }
+}
+
+suspend fun RoutingContext.checkDeviceIntegrity(
+    isCheckForUserId : Boolean = true,
+    onSuccess: suspend (AuthenticationParams) -> Unit
+) {
+    checkAuth { authParam ->
+        if ((authParam.userId == null || authParam.userId.isEmpty()) && isCheckForUserId) {
+            call.respond(
+                status = HttpStatusCode.BadRequest, message = createErrorResponse(
+                    code = HttpStatusCode.BadRequest.value,
+                    message = "User ID is required.",
+                    details = "Please provide a valid user ID in the request."
+                )
+            )
+            return@checkAuth
+        }
+        if (authParam.clientVersion == null || authParam.clientVersion.isEmpty()) {
+            call.respond(
+                status = HttpStatusCode.BadRequest, message = createErrorResponse(
+                    code = HttpStatusCode.BadRequest.value,
+                    message = "Client version is required.",
+                    details = "Please provide a valid client version in the request."
+                )
+            )
+            return@checkAuth
+        }
+        if (authParam.deviceId == null || authParam.deviceId.isEmpty()) {
+            call.respond(
+                status = HttpStatusCode.BadRequest, message = createErrorResponse(
+                    code = HttpStatusCode.BadRequest.value,
+                    message = "Device ID is required.",
+                    details = "Please provide a valid device ID in the request."
+                )
+            )
+            return@checkAuth
+        }
+        onSuccess.invoke(
+            authParam
         )
     }
 }

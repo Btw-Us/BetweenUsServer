@@ -11,8 +11,12 @@
 package com.aatech.database.mysql.repository.user.impl
 
 import com.aatech.database.mysql.mapper.rowToUser
+import com.aatech.database.mysql.mapper.rowToUserPassword
+import com.aatech.database.mysql.model.UserDevicesTable
+import com.aatech.database.mysql.model.UserPasswordTable
 import com.aatech.database.mysql.model.UserPrivacySettingsTable
 import com.aatech.database.mysql.model.UserTable
+import com.aatech.database.mysql.model.entity.SetUpUserProfile
 import com.aatech.database.mysql.model.entity.User
 import com.aatech.database.mysql.model.entity.UserLogInResponse
 import com.aatech.database.mysql.repository.user.UserRepository
@@ -24,11 +28,12 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 
 class UserRepositoryImp : UserRepository {
-    override suspend fun createUser(user: User): UserLogInResponse = withContext(Dispatchers.IO) {
+    override suspend fun createUser(
+        user: User, deviceInfo: Pair<String, String>
+    ): UserLogInResponse = withContext(Dispatchers.IO) {
         transaction {
-            val existingUser = UserTable.selectAll()
-                .where { UserTable.uuid eq user.uuid }
-                .mapNotNull(::rowToUser).singleOrNull()
+            val existingUser =
+                UserTable.selectAll().where { UserTable.uuid eq user.uuid }.mapNotNull(::rowToUser).singleOrNull()
 
             if (existingUser != null) {
                 val newLastLogin = System.currentTimeMillis()
@@ -39,8 +44,7 @@ class UserRepositoryImp : UserRepository {
                 val updatedUser = existingUser.copy(lastLogin = newLastLogin)
 
                 return@transaction UserLogInResponse(
-                    updatedUser,
-                    isNewUser = false
+                    updatedUser, isNewUser = false
                 )
             }
             val insertUser = UserTable.insert {
@@ -61,12 +65,18 @@ class UserRepositoryImp : UserRepository {
                 if (userPrivacySettings.insertedCount <= 0) {
                     throw Exception("Failed to create User Privacy Settings")
                 }
-                val currentUser = UserTable.selectAll()
-                    .where { UserTable.uuid eq user.uuid }
-                    .mapNotNull(::rowToUser).singleOrNull()
+                val insertUserDevice = UserDevicesTable.insert {
+                    it[userId] = user.uuid
+                    it[deviceId] = deviceInfo.first
+                    it[deviceName] = deviceInfo.second
+                }
+                if (insertUserDevice.insertedCount <= 0) {
+                    throw Exception("Failed to create User Device")
+                }
+                val currentUser =
+                    UserTable.selectAll().where { UserTable.uuid eq user.uuid }.mapNotNull(::rowToUser).singleOrNull()
                 UserLogInResponse(
-                    currentUser ?: throw Exception("User not found after creation"),
-                    isNewUser = true
+                    currentUser ?: throw Exception("User not found after creation"), isNewUser = true
                 )
             } else {
                 throw Exception("Failed to create User")
@@ -77,12 +87,48 @@ class UserRepositoryImp : UserRepository {
 
     override suspend fun getUserByEmail(email: String): User? = withContext(Dispatchers.IO) {
         transaction {
-            UserTable.selectAll()
-                .where { UserTable.email eq email }
-                .mapNotNull(::rowToUser)
-                .singleOrNull()
+            UserTable.selectAll().where { UserTable.email eq email }.mapNotNull(::rowToUser).singleOrNull()
         }
     }
+
+    override suspend fun isProfileSetUpDone(userId: String): Boolean = withContext(Dispatchers.IO) {
+        transaction {
+            UserPasswordTable.selectAll().where { UserTable.uuid eq userId }.mapNotNull(::rowToUserPassword)
+                .singleOrNull()?.passwordHash != null
+        }
+    }
+
+    override suspend fun setUpProfile(
+        setUpUserProfile: SetUpUserProfile
+    ): UserLogInResponse = withContext(Dispatchers.IO) {
+        transaction {
+            val user = UserTable.selectAll().where { UserTable.uuid eq setUpUserProfile.userId }.mapNotNull(::rowToUser)
+                .singleOrNull() ?: throw Exception("User not found")
+
+            UserPasswordTable.insert {
+                it[this.userId] = setUpUserProfile.userId
+                it[this.passwordHash] = setUpUserProfile.passwordHash
+                it[lastPasswordChange] = System.currentTimeMillis()
+            }
+
+            UserTable.update({ UserTable.uuid eq setUpUserProfile.userId }) {
+                it[username] = setUpUserProfile.userName
+            }
+
+            val updatedUser = user.copy(username = setUpUserProfile.userName)
+            UserLogInResponse(
+                updatedUser, isNewUser = false
+            )
+        }
+    }
+
+    override suspend fun checkUserPassword(userId: String, passwordHash: String): Boolean =
+        withContext(Dispatchers.IO) {
+            transaction {
+                UserPasswordTable.selectAll().where { UserPasswordTable.userId eq userId }
+                    .mapNotNull(::rowToUserPassword).singleOrNull()?.passwordHash == passwordHash
+            }
+        }
 
 
 }

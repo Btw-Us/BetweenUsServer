@@ -13,6 +13,7 @@ package com.aatech.plugin
 import com.aatech.database.mysql.config.DatabaseConfig
 import com.aatech.database.mysql.model.AuthTokenTable
 import com.aatech.database.mysql.model.FriendsTable
+import com.aatech.database.mysql.model.UserPasswordTable
 import com.aatech.database.mysql.model.UserPrivacySettingsTable
 import com.aatech.database.mysql.model.UserStatusTable
 import com.aatech.database.mysql.model.UserTable
@@ -38,7 +39,8 @@ fun databaseConfiguration(database: Database) {
             UserTable,
             UserPrivacySettingsTable,
             UserStatusTable,
-            FriendsTable
+            FriendsTable,
+            UserPasswordTable
         )
 
         migrationStatements.forEach { statement ->

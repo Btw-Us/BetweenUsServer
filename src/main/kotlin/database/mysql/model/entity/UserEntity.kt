@@ -45,6 +45,22 @@ data class User(
 
 
 @Serializable
+data class SetUpUserProfile(
+    val userId: String,
+    val userName: String,
+    val passwordHash: String,
+)
+
+
+@Serializable
+data class UserPassword(
+    val userId: String,
+    val passwordHash: String? = null,
+    val lastPasswordChange: Long = System.currentTimeMillis()
+)
+
+
+@Serializable
 data class UserPrivacySettings(
     val userId: String,
     val allowProfilePicture: PrivacyVisibility = PrivacyVisibility.PUBLIC,

@@ -43,7 +43,7 @@ enum class ClientType{
  * @property clientVersion The version of the client application (optional).
  * @property deviceId The unique identifier of the device making the request (optional).
  * @property session The session identifier for the current user session (optional).
- * @property deviceName The name of the device making the request (optional).
+ * @property deviceModel The name of the device making the request (optional).
  * This class provides a method to validate the authentication parameters
  * to ensure that the API key is not empty and the client type is recognized.
  * * @constructor Creates an instance of [AuthenticationParams] with the specified parameters.
@@ -57,7 +57,7 @@ data class AuthenticationParams(
     val clientVersion : String? = null,
     val deviceId: String? = null,
     val session : String? = null,
-    val deviceName: String? = null,
+    val deviceModel: String? = null,
 
     ){
     /**
@@ -103,7 +103,7 @@ data class AuthenticationParams(
         clientVersion?.let { headers["X-Client-Version"] = it }
         deviceId?.let { headers["X-Device-Id"] = it }
         session?.let { headers["X-Session"] = it }
-        deviceName?.let { headers["X-Device-Name"] = it }
+        deviceModel?.let { headers["X-Device-Name"] = it }
         return headers
     }
 }
