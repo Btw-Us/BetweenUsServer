@@ -27,7 +27,7 @@ fun RegisterUserRequest.toUserEntity(): User {
 
 @Serializable
 data class UserLogInResponse(
-    val user: User, val isNewUser: Boolean = false
+    val user: User, val isProfileSetUpDone: Boolean = false
 )
 
 @Serializable

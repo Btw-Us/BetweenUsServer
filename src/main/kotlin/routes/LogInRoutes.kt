@@ -40,11 +40,11 @@ fun Routing.allLogInRoutes() {
     setUpUserProfile()
 }
 
-//TODO: check the logic for data insertion and update
+
 fun Routing.logInWithGoogle() {
     authenticate("auth-bearer") {
         post(LoginRoutes.LogInWithGoogle.path) {
-            checkDeviceIntegrity { authParam ->
+            checkDeviceIntegrity(false) { authParam ->
                 val user = call.receive<RegisterUserRequest>()
                 val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
                 try {
@@ -53,7 +53,7 @@ fun Routing.logInWithGoogle() {
                         deviceInfo = Pair(authParam.deviceId!!, authParam.deviceModel!!)
                     )
                     call.respond(
-                        status = if (loggedUser.isNewUser) HttpStatusCode.Created else HttpStatusCode.OK,
+                        status = if (loggedUser.isProfileSetUpDone) HttpStatusCode.Created else HttpStatusCode.OK,
                         message = loggedUser
                     )
                 } catch (e: Exception) {
@@ -85,8 +85,31 @@ fun Routing.setUpUserProfile() {
                     )
                     return@checkDeviceIntegrity
                 }
-//                TODO:Check the loggedIn Device info
                 val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+                val isDeviceValid = authTokenService.checkIsUserDeviceValid(
+                    userId = setUpUserProfile.userId,
+                    deviceId = authParam.deviceId ?: ""
+                )
+                if (!isDeviceValid) {
+                    call.respond(
+                        status = HttpStatusCode.Unauthorized, message = createErrorResponse(
+                            code = HttpStatusCode.Unauthorized.value,
+                            message = "Unauthorized access. Invalid device.",
+                            details = "The device ID in the request does not match the authenticated user's device."
+                        )
+                    )
+                    return@checkDeviceIntegrity
+                }
+                if (setUpUserProfile.passwordHash.isBlank()) {
+                    call.respond(
+                        status = HttpStatusCode.BadRequest, message = createErrorResponse(
+                            code = HttpStatusCode.BadRequest.value,
+                            message = "Password cannot be empty.",
+                            details = "Please provide a valid password to set up your profile."
+                        )
+                    )
+                    return@checkDeviceIntegrity
+                }
                 try {
                     val loggedUser = authTokenService.setUpProfile(setUpUserProfile)
                     call.respond(
@@ -150,10 +173,10 @@ fun Routing.logInWithOAuth() {
                     )
                     return@get
                 }
-
+                val isProfileDone = authTokenService.isProfileSetUpDone(loggedUser.uuid)
                 call.respond(
                     status = HttpStatusCode.OK, message = UserLogInResponse(
-                        loggedUser, false
+                        user = loggedUser, isProfileSetUpDone = isProfileDone
                     )
                 )
             } catch (e: Exception) {
@@ -183,13 +206,4 @@ fun Routing.logInWithOAuth() {
 //            call.respond(HttpStatusCode.BadRequest, "Please provide token parameter")
 //        }
 //    }
-//}
-
-//fun Routing.userRoutes() {
-////    post(LoginRoutes.LogInOrRegister.path) {
-////        checkAuth { checkAuth ->
-////            val loggedUser = call.receive<User>()
-//////            TODO: Implement login or register logic from here
-////        }
-////    }
 //}

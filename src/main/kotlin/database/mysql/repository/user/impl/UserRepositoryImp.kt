@@ -21,7 +21,9 @@ import com.aatech.database.mysql.model.entity.User
 import com.aatech.database.mysql.model.entity.UserLogInResponse
 import com.aatech.database.mysql.repository.user.UserRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -44,7 +46,7 @@ class UserRepositoryImp : UserRepository {
                 val updatedUser = existingUser.copy(lastLogin = newLastLogin)
 
                 return@transaction UserLogInResponse(
-                    updatedUser, isNewUser = false
+                    updatedUser, isProfileSetUpDone = false
                 )
             }
             val insertUser = UserTable.insert {
@@ -75,8 +77,14 @@ class UserRepositoryImp : UserRepository {
                 }
                 val currentUser =
                     UserTable.selectAll().where { UserTable.uuid eq user.uuid }.mapNotNull(::rowToUser).singleOrNull()
+                val isProfileDone = runBlocking {
+                    isProfileSetUpDone(
+                        userId = user.uuid
+                    )
+                }
                 UserLogInResponse(
-                    currentUser ?: throw Exception("User not found after creation"), isNewUser = true
+                    currentUser ?: throw Exception("User not found after creation"),
+                    isProfileSetUpDone = isProfileDone
                 )
             } else {
                 throw Exception("Failed to create User")
@@ -93,7 +101,7 @@ class UserRepositoryImp : UserRepository {
 
     override suspend fun isProfileSetUpDone(userId: String): Boolean = withContext(Dispatchers.IO) {
         transaction {
-            UserPasswordTable.selectAll().where { UserTable.uuid eq userId }.mapNotNull(::rowToUserPassword)
+            UserPasswordTable.selectAll().where { UserPasswordTable.userId eq userId }.mapNotNull(::rowToUserPassword)
                 .singleOrNull()?.passwordHash != null
         }
     }
@@ -117,10 +125,20 @@ class UserRepositoryImp : UserRepository {
 
             val updatedUser = user.copy(username = setUpUserProfile.userName)
             UserLogInResponse(
-                updatedUser, isNewUser = false
+                updatedUser, isProfileSetUpDone = false
             )
         }
     }
+
+    override suspend fun checkIsUserDeviceValid(userId: String, deviceId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            transaction {
+                UserDevicesTable.selectAll()
+                    .where { UserDevicesTable.userId eq userId and (UserDevicesTable.deviceId eq deviceId) }
+                    .mapNotNull { it[UserDevicesTable.deviceId] }
+                    .singleOrNull() != null
+            }
+        }
 
     override suspend fun checkUserPassword(userId: String, passwordHash: String): Boolean =
         withContext(Dispatchers.IO) {

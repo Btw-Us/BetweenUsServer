@@ -235,15 +235,15 @@ enum class ActiveStatus {
  * @see UserTable The table storing user information, which this table references.
  */
 object UserDevicesTable : Table("user_logged_in_devices") {
-    val userId = varchar("user_id", 255).references(
+    val userId = varchar("pk_user_id", 255).references(
         UserTable.uuid,
         onDelete = ReferenceOption.CASCADE,
         onUpdate = ReferenceOption.CASCADE
     )
     val deviceId = varchar("device_id", 255)
     val deviceName = varchar("device_name", 255)
-    val devicePublicKey = text("device_public_key").default("")
-    val encryptedKeyMaterial = text("encrypted_key_material").default("")
+    val devicePublicKey = varchar("device_public_key", 255).default("")
+    val encryptedKeyMaterial = varchar("encrypted_key_material", 255).default("")
     val keyDerivationSalt = varchar("key_derivation_salt", 64).default("")
     val lastUsedAt = long("last_used_at").default(System.currentTimeMillis())
 

@@ -25,7 +25,7 @@ interface UserRepository {
      */
     suspend fun createUser(
         user: User,
-        deviceInfo : Pair<String, String>
+        deviceInfo: Pair<String, String>
     ): UserLogInResponse
 
     suspend fun getUserByEmail(
@@ -42,6 +42,11 @@ interface UserRepository {
         setUpUserProfile: SetUpUserProfile
     ): UserLogInResponse
 
+
+    suspend fun checkIsUserDeviceValid(
+        userId: String,
+        deviceId: String
+    ) : Boolean
 
     suspend fun checkUserPassword(
         userId: String,
