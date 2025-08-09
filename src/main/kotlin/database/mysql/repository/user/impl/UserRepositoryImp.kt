@@ -10,6 +10,7 @@
 
 package com.aatech.database.mysql.repository.user.impl
 
+import com.aatech.cryptography.hashing.HashingManager
 import com.aatech.database.mysql.mapper.rowToUser
 import com.aatech.database.mysql.mapper.rowToUserPassword
 import com.aatech.database.mysql.model.UserDevicesTable
@@ -24,11 +25,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.update
 
 class UserRepositoryImp : UserRepository {
     override suspend fun createUser(
@@ -119,10 +117,15 @@ class UserRepositoryImp : UserRepository {
         val user = transaction {
             val user = UserTable.selectAll().where { UserTable.uuid eq setUpUserProfile.userId }.mapNotNull(::rowToUser)
                 .singleOrNull() ?: throw Exception("User not found")
-
+            val salt = HashingManager.generateSalt()
+            val hashPassword = HashingManager.hashPasswordWithSalt(
+                password = setUpUserProfile.passwordHash,
+                salt = salt
+            )
             UserPasswordTable.insert {
                 it[this.userId] = setUpUserProfile.userId
-                it[this.passwordHash] = setUpUserProfile.passwordHash
+                it[this.passwordHash] = hashPassword
+                it[this.passwordSalt] = salt
                 it[lastPasswordChange] = System.currentTimeMillis()
             }
 
@@ -161,10 +164,24 @@ class UserRepositoryImp : UserRepository {
 
     override suspend fun checkUserPassword(userId: String, passwordHash: String): Boolean =
         withContext(Dispatchers.IO) {
-            transaction {
-                UserPasswordTable.selectAll().where { UserPasswordTable.userId eq userId }
-                    .mapNotNull(::rowToUserPassword).singleOrNull()?.passwordHash == passwordHash
+            val storedPasswordHashWithSalt = transaction {
+                UserPasswordTable.select(
+                    UserPasswordTable.passwordHash, UserPasswordTable.passwordSalt
+                ).where { UserPasswordTable.userId eq userId }
+                    .mapNotNull { row ->
+                        row[UserPasswordTable.passwordHash]!! to row[UserPasswordTable.passwordSalt]!!
+                    }.singleOrNull()
             }
+            if (
+                storedPasswordHashWithSalt == null
+            ) {
+                return@withContext false
+            }
+            val userInputPasswordHash = HashingManager.hashPasswordWithSalt(
+                password = passwordHash,
+                salt = storedPasswordHashWithSalt.second
+            )
+            userInputPasswordHash == storedPasswordHashWithSalt.first
         }
 
 

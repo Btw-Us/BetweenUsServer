@@ -61,5 +61,7 @@ dependencies {
 
     implementation("org.bouncycastle:bcprov-jdk18on:1.81")
 
+    implementation("org.mindrot:jbcrypt:0.4")
+
 
 }

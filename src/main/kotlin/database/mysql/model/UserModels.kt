@@ -119,6 +119,7 @@ object UserPasswordTable : Table("user_passwords") {
         onUpdate = ReferenceOption.CASCADE
     )
     val passwordHash = varchar("password_hash", 255).nullable().default(null)
+    val passwordSalt = varchar("password_salt", 64).nullable().default(null)
     val lastPasswordChange = long("last_password_change").default(System.currentTimeMillis())
 
     override val primaryKey: PrimaryKey?
