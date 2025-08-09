@@ -16,7 +16,6 @@
 package com.aatech.routes
 
 import com.aatech.config.api_config.LoginRoutes
-import com.aatech.config.api_config.checkAuth
 import com.aatech.config.api_config.checkDeviceIntegrity
 import com.aatech.config.response.createErrorResponse
 import com.aatech.dagger.components.DaggerMySqlComponent
@@ -123,8 +122,48 @@ fun Routing.setUpUserProfile() {
 fun Routing.checkUserPassword() {
     authenticate("auth-bearer") {
         post(LoginRoutes.CheckPassword.path) {
-            checkAuth { authParam ->
-
+            val setUpUserProfile = call.receive<SetUpUserProfile>()
+            val userRepository: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+            checkDeviceIntegrity(
+                userRepository = userRepository,
+            ) { authParam ->
+                if (authParam.userId != setUpUserProfile.userId) {
+                    call.respond(
+                        status = HttpStatusCode.Unauthorized, message = createErrorResponse(
+                            code = HttpStatusCode.Unauthorized.value,
+                            message = "Unauthorized access. User ID mismatch.",
+                            details = "The user ID in the request does not match the authenticated user ID."
+                        )
+                    )
+                    return@checkDeviceIntegrity
+                }
+                try {
+                    val isPasswordCorrect = userRepository.checkUserPassword(
+                        userId = setUpUserProfile.userId,
+                        passwordHash = setUpUserProfile.passwordHash
+                    )
+                    if (isPasswordCorrect) {
+                        call.respond(
+                            status = HttpStatusCode.OK, message = true
+                        )
+                    } else {
+                        call.respond(
+                            status = HttpStatusCode.Unauthorized, message = createErrorResponse(
+                                code = HttpStatusCode.Unauthorized.value,
+                                message = "Incorrect password.",
+                                details = "The provided password is incorrect. Please try again."
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    call.respond(
+                        status = HttpStatusCode.BadRequest, message = createErrorResponse(
+                            code = HttpStatusCode.BadRequest.value,
+                            message = "Failed to check user password.",
+                            details = e.message ?: "Unknown error occurred while checking user password."
+                        )
+                    )
+                }
             }
         }
     }

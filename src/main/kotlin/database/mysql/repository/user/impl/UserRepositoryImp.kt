@@ -22,7 +22,9 @@ import com.aatech.database.mysql.model.entity.UserLogInResponse
 import com.aatech.database.mysql.repository.user.UserRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -41,6 +43,15 @@ class UserRepositoryImp : UserRepository {
                 val newLastLogin = System.currentTimeMillis()
                 UserTable.update({ UserTable.uuid eq user.uuid }) {
                     it[lastLogin] = newLastLogin
+                }
+                UserDevicesTable.deleteWhere { UserDevicesTable.userId eq user.uuid }
+                val insertUserDevice = UserDevicesTable.insert {
+                    it[userId] = user.uuid
+                    it[deviceId] = deviceInfo.first
+                    it[deviceName] = deviceInfo.second
+                }
+                if (insertUserDevice.insertedCount <= 0) {
+                    throw Exception("Failed to update User Device")
                 }
                 val updatedUser = existingUser.copy(lastLogin = newLastLogin)
                 return@transaction updatedUser
