@@ -1,4 +1,5 @@
 # BetweenUsServer
+![Code](https://tokei.rs/b1/github/Btw-Us/BetweenUsServer?category=code)
 [![wakatime](https://wakatime.com/badge/github/aiyu-ayaan/BetweenUs.svg)](https://wakatime.com/badge/github/aiyu-ayaan/BetweenUs)
 
 > *A humble server, fueling fragments of a quiet dream.*
