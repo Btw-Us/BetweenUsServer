@@ -134,58 +134,269 @@ D:\Test\BetweenUsServer\
 
 ---
 
+## Configuration
 
-## `.env` Setup
+### Environment Variables Setup
+
+⚠️ **Important**: Configuration files are not included in the repository for security reasons.
 
 To get started, configure your environment variables:
 
-1.  Create a `.env` file in the **root directory** of the project.
-2.  Add the following environment variables:
+1. Create a `.env` file in the **root directory** of the project.
+2. Add the following environment variables:
 
 ```dotenv
 # MySQL Configuration
-DATABASE_URL=         # Your MySQL JDBC connection string
-MYSQL_USER_NAME=      # Your MySQL username
-MYSQL_PASSWORD=       # Your MySQL password
-DATABASE_NAME=       # Your MySQL database name
+DATABASE_URL=jdbc:mysql://localhost:3306/your_database_name
+MYSQL_USER_NAME=your_mysql_username
+MYSQL_PASSWORD=your_mysql_password
+DATABASE_NAME=your_database_name
 
 # MongoDB Configuration
-MANGO_DB_USER_NAME=     # Your MongoDB username
-MANGO_DB_PASSWORD=      # Your MongoDB password
-MANGO_DB_URL =          # Your MongoDB connection string
+MANGO_DB_USER_NAME=your_mongodb_username
+MANGO_DB_PASSWORD=your_mongodb_password
+MANGO_DB_URL=localhost:27017
+
+# Server Configuration
+SERVER_PORT=8080
+SERVER_HOST=localhost
 
 # JWT Configuration
-JWT_SECRET=           # Your JWT secret key
-JWT_ISSUER=           # Your JWT issuer
-JWT_AUDIENCE=         # Your JWT audience
-JWT_REALM=            # Your JWT realm
+JWT_SECRET=your_jwt_secret_key_here
+JWT_REALM=your_jwt_realm
+JWT_EXPIRATION=3600
 
 # Google OAuth Configuration
-GOOGLE_CLIENT_ID=     # Your Google OAuth client ID
-GOOGLE_CLIENT_SECRET= # Your Google OAuth client secret
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+```
+
+### Docker Compose Configuration
+
+Create a `docker-compose.yml` file in the **root directory** of the project:
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      # Database Configuration
+      - DATABASE_URL=jdbc:mysql://mysql:3306/your_database_name
+      - MYSQL_USER_NAME=your_mysql_username
+      - MYSQL_PASSWORD=your_mysql_password
+      - DATABASE_NAME=your_database_name
+      - MANGO_DB_USER_NAME=your_mongodb_username
+      - MANGO_DB_PASSWORD=your_mongodb_password
+      - MANGO_DB_URL=mongodb:27017
+
+      # Server Configuration
+      - SERVER_PORT=8080
+      - SERVER_HOST=0.0.0.0
+
+      # JWT Configuration
+      - JWT_SECRET=your_jwt_secret_key_here
+      - JWT_REALM=your_jwt_realm
+      - JWT_EXPIRATION=3600
+
+      # Google OAuth
+      - GOOGLE_CLIENT_ID=your_google_client_id
+      - GOOGLE_CLIENT_SECRET=your_google_client_secret
+    networks:
+      - app-network
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD=your_mysql_password
+      MYSQL_DATABASE=your_database_name
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-scripts/mysql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pyour_mysql_password"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - app-network
+
+  mongodb:
+    image: mongo:7.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME=your_mongodb_username
+      MONGO_INITDB_ROOT_PASSWORD=your_mongodb_password
+      MONGO_INITDB_DATABASE=your_database_name
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./init-scripts/mongo:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - app-network
+
+volumes:
+  mysql_data:
+  mongodb_data:
+
+networks:
+  app-network:
+    driver: bridge
 ```
 
 ---
 
 ## Running the Application
 
-To run the application, you will need to have Java and Gradle installed.
+### Prerequisites
 
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/aiyu-ayaan/BetweenUsServer.git
-    ```
-2.  **Set up the environment variables**:
-    Create a `.env` file in the root directory and add the required variables as described in the [`.env` Setup](#env-setup) section.
-3.  **Build the application**:
-    ```bash
-    ./gradlew build
-    ```
-4.  **Run the application**:
-    ```bash
-    ./gradlew run
-    ```
+- Java 17 or higher
+- Gradle
+- Docker and Docker Compose (for Docker setup)
 
-The server will start on the configured port.
+### Option 1: Local Development
 
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/aiyu-ayaan/BetweenUsServer.git
+   cd BetweenUsServer
+   ```
 
+2. **Set up the environment variables**:
+   Create a `.env` file in the root directory and add the required variables as described in the [Environment Variables Setup](#environment-variables-setup) section.
+
+3. **Set up databases locally** (MySQL and MongoDB must be running on your machine):
+    - MySQL on `localhost:3306`
+    - MongoDB on `localhost:27017`
+
+4. **Build the application**:
+   ```bash
+   ./gradlew build
+   ```
+
+5. **Run the application**:
+   ```bash
+   ./gradlew run
+   ```
+
+The server will start on `http://localhost:8080`.
+
+### Option 2: Docker (Recommended)
+
+This is the recommended way to run the application as it sets up all dependencies automatically.
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/aiyu-ayaan/BetweenUsServer.git
+   cd BetweenUsServer
+   ```
+
+2. **Create the Docker Compose configuration**:
+   Create a `docker-compose.yml` file as described in the [Docker Compose Configuration](#docker-compose-configuration) section.
+
+3. **Build and run with Docker Compose**:
+   ```bash
+   docker-compose up --build
+   ```
+
+   This command will:
+    - Build the application Docker image
+    - Start MySQL and MongoDB containers
+    - Wait for databases to be healthy
+    - Start the application container
+    - Set up networking between containers
+
+4. **Access the application**:
+   The server will be available at `http://localhost:8080`
+
+### Option 3: Docker (Manual)
+
+You can also run the application using Docker manually:
+
+1. **Build the Docker image**:
+   ```bash
+   docker build -t between-us-server .
+   ```
+
+2. **Run the Docker container**:
+   ```bash
+   docker run --env-file .env -p 8080:8080 between-us-server
+   ```
+
+   **Note**: This method requires you to have MySQL and MongoDB running separately and accessible from the Docker container.
+
+---
+
+## Docker Configuration Details
+
+### Multi-stage Build
+
+The Dockerfile uses a multi-stage build to create an optimized Docker image:
+
+- **Stage 1: Build**
+    - Uses `openjdk:17-jdk-slim` image to build the application
+    - Copies source code and Gradle files
+    - Runs `./gradlew installDist` to build and create distribution
+
+- **Stage 2: Final Image**
+    - Uses `openjdk:17-jre-slim` image for runtime
+    - Copies built application from build stage
+    - Exposes port 8080
+    - Runs application using Gradle-generated start script
+
+### Health Checks
+
+The Docker Compose configuration includes health checks for both databases:
+- **MySQL**: Uses `mysqladmin ping` to verify database connectivity
+- **MongoDB**: Uses `mongosh` to execute a ping command
+
+The application container waits for both databases to be healthy before starting.
+
+---
+
+## Security Note
+
+⚠️ **Important Security Information**:
+
+- The configuration files (`.env`, `docker-compose.yml`) contain sensitive information and are excluded from the repository
+- Always use strong, unique passwords in production environments
+- The JWT secret should be generated securely and kept confidential
+- Google OAuth credentials should be obtained from your own Google Cloud Console project
+- Never commit configuration files containing credentials to version control
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Database Connection Failed**: Ensure MySQL and MongoDB are running and accessible
+2. **Port Already in Use**: Change the `SERVER_PORT` in your configuration
+3. **Docker Permission Issues**: Run Docker commands with appropriate permissions
+4. **Health Check Failures**: Wait longer for databases to initialize, especially on first run
+
+### Logs
+
+To view application logs when running with Docker Compose:
+```bash
+docker-compose logs -f app
+```
+
+To view database logs:
+```bash
+docker-compose logs -f mysql
+docker-compose logs -f mongodb
+```
