@@ -12,6 +12,7 @@ package com.aatech.config.api_config
 
 import com.aatech.config.response.createErrorResponse
 import com.aatech.dagger.components.DaggerMySqlComponent
+import com.aatech.database.mysql.repository.user.UserRepository
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
@@ -102,12 +103,21 @@ suspend fun RoutingContext.checkAuth(
     }
 }
 
+/**
+ * Checks the device integrity of the user.
+ * This function validates the authentication parameters and checks if the device is authorized for the user.
+ * @param isCheckForUserId If true, checks if the user ID is provided.
+ * @param userRepository Optional UserRepository to check if the device is valid for the user.
+ * @param onSuccess Callback function to be invoked if the device integrity check passes.
+ *
+ */
 suspend fun RoutingContext.checkDeviceIntegrity(
-    isCheckForUserId : Boolean = true,
+    isCheckForUserId: Boolean = true,
+    userRepository: UserRepository? = null,
     onSuccess: suspend (AuthenticationParams) -> Unit
 ) {
     checkAuth { authParam ->
-        if ((authParam.userId == null || authParam.userId.isEmpty()) && isCheckForUserId) {
+        if (isCheckForUserId && (authParam.userId == null || authParam.userId.isEmpty())) {
             call.respond(
                 status = HttpStatusCode.BadRequest, message = createErrorResponse(
                     code = HttpStatusCode.BadRequest.value,
@@ -136,6 +146,22 @@ suspend fun RoutingContext.checkDeviceIntegrity(
                 )
             )
             return@checkAuth
+        }
+        if (userRepository != null) {
+            val isDeviceValid = userRepository.checkIsUserDeviceValid(
+                userId = authParam.userId ?: "",
+                deviceId = authParam.deviceId
+            )
+            if (!isDeviceValid) {
+                call.respond(
+                    status = HttpStatusCode.Unauthorized, message = createErrorResponse(
+                        code = HttpStatusCode.Unauthorized.value,
+                        message = "Unauthorized device",
+                        details = "The device is not authorized for the user."
+                    )
+                )
+                return@checkAuth
+            }
         }
         onSuccess.invoke(
             authParam

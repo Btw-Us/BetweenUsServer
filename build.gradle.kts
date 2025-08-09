@@ -41,7 +41,6 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:3.2.2")
     implementation("io.ktor:ktor-client-auth:3.2.2")
     implementation("io.ktor:ktor-client-content-negotiation")
-    implementation("ch.qos.logback:logback-classic")
 
 
 

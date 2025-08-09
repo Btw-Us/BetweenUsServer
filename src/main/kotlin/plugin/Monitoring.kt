@@ -16,14 +16,35 @@
 
 package com.aatech.plugin
 
+import io.ktor.client.plugins.logging.*
 import io.ktor.server.application.*
-import io.ktor.server.plugins.calllogging.*
+import io.ktor.server.plugins.calllogging.CallLogging
+import io.ktor.server.plugins.calllogging.processingTimeMillis
 import io.ktor.server.request.*
 import org.slf4j.event.Level
 
 fun Application.configureMonitoring() {
     install(CallLogging) {
         level = Level.INFO
-        filter { call -> call.request.path().startsWith("/api/v1") }
+        logger = org.slf4j.LoggerFactory.getLogger("ktor.application")
+
+        // Log request details
+        format { call ->
+            val status = call.response.status()
+            val httpMethod = call.request.httpMethod.value
+            val uri = call.request.uri
+            val userAgent = call.request.headers["User-Agent"]
+            val duration = call.processingTimeMillis()
+
+            "[$status] $httpMethod $uri - ${duration}ms - User-Agent: $userAgent"
+        }
+
+        // Filter what to log
+        filter { call ->
+            // Log all requests, including errors
+            true
+        }
+
+
     }
 }

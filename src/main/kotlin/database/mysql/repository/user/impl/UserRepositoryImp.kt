@@ -21,7 +21,6 @@ import com.aatech.database.mysql.model.entity.User
 import com.aatech.database.mysql.model.entity.UserLogInResponse
 import com.aatech.database.mysql.repository.user.UserRepository
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -31,9 +30,10 @@ import org.jetbrains.exposed.v1.jdbc.update
 
 class UserRepositoryImp : UserRepository {
     override suspend fun createUser(
-        user: User, deviceInfo: Pair<String, String>
+        user: User,
+        deviceInfo: Pair<String, String>
     ): UserLogInResponse = withContext(Dispatchers.IO) {
-        transaction {
+        val user: User? = transaction {
             val existingUser =
                 UserTable.selectAll().where { UserTable.uuid eq user.uuid }.mapNotNull(::rowToUser).singleOrNull()
 
@@ -42,12 +42,8 @@ class UserRepositoryImp : UserRepository {
                 UserTable.update({ UserTable.uuid eq user.uuid }) {
                     it[lastLogin] = newLastLogin
                 }
-
                 val updatedUser = existingUser.copy(lastLogin = newLastLogin)
-
-                return@transaction UserLogInResponse(
-                    updatedUser, isProfileSetUpDone = false
-                )
+                return@transaction updatedUser
             }
             val insertUser = UserTable.insert {
                 it[uuid] = user.uuid
@@ -77,20 +73,20 @@ class UserRepositoryImp : UserRepository {
                 }
                 val currentUser =
                     UserTable.selectAll().where { UserTable.uuid eq user.uuid }.mapNotNull(::rowToUser).singleOrNull()
-                val isProfileDone = runBlocking {
-                    isProfileSetUpDone(
-                        userId = user.uuid
-                    )
-                }
-                UserLogInResponse(
-                    currentUser ?: throw Exception("User not found after creation"),
-                    isProfileSetUpDone = isProfileDone
-                )
+                currentUser
             } else {
                 throw Exception("Failed to create User")
             }
-
         }
+        if (user == null) {
+            throw Exception("User creation failed")
+        }
+        val isProfileDone = isProfileSetUpDone(
+            userId = user.uuid
+        )
+        UserLogInResponse(
+            user, isProfileSetUpDone = isProfileDone
+        )
     }
 
     override suspend fun getUserByEmail(email: String): User? = withContext(Dispatchers.IO) {
@@ -109,7 +105,7 @@ class UserRepositoryImp : UserRepository {
     override suspend fun setUpProfile(
         setUpUserProfile: SetUpUserProfile
     ): UserLogInResponse = withContext(Dispatchers.IO) {
-        transaction {
+        val user = transaction {
             val user = UserTable.selectAll().where { UserTable.uuid eq setUpUserProfile.userId }.mapNotNull(::rowToUser)
                 .singleOrNull() ?: throw Exception("User not found")
 
@@ -124,9 +120,22 @@ class UserRepositoryImp : UserRepository {
             }
 
             val updatedUser = user.copy(username = setUpUserProfile.userName)
-            UserLogInResponse(
-                updatedUser, isProfileSetUpDone = false
-            )
+            updatedUser
+        }
+        val isProfileDone = isProfileSetUpDone(user.uuid)
+        UserLogInResponse(
+            user, isProfileSetUpDone = isProfileDone
+        )
+    }
+
+    override suspend fun checkIsUserNameAvailable(userName: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            transaction {
+                UserTable.selectAll()
+                    .where { UserTable.username eq userName }
+                    .mapNotNull { it[UserTable.username] }
+                    .singleOrNull() == null
+            }
         }
     }
 
@@ -135,8 +144,7 @@ class UserRepositoryImp : UserRepository {
             transaction {
                 UserDevicesTable.selectAll()
                     .where { UserDevicesTable.userId eq userId and (UserDevicesTable.deviceId eq deviceId) }
-                    .mapNotNull { it[UserDevicesTable.deviceId] }
-                    .singleOrNull() != null
+                    .mapNotNull { it[UserDevicesTable.deviceId] }.singleOrNull() != null
             }
         }
 

@@ -43,10 +43,15 @@ interface UserRepository {
     ): UserLogInResponse
 
 
+    suspend fun checkIsUserNameAvailable(
+        userName: String
+    ): Boolean
+
+
     suspend fun checkIsUserDeviceValid(
         userId: String,
         deviceId: String
-    ) : Boolean
+    ): Boolean
 
     suspend fun checkUserPassword(
         userId: String,

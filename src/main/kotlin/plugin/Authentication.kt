@@ -44,24 +44,24 @@ fun Application.configureAuthentication(
         }
         configureJWTAuthentication()
     }
-    install(StatusPages) {
-        status(HttpStatusCode.Unauthorized) {
-            call.respond(
-                HttpStatusCode.Unauthorized,
-                createErrorResponse(
-                    code = HttpStatusCode.Unauthorized.value,
-                    message = "Unauthorized access. Please provide a valid token.",
-                    details = """
-                The request was denied due to missing or invalid authentication credentials.
-                if you are added your token in the header, please check if it is correct or is not expired.
-                
-                To authenticate, please include a valid token in the request header:
-                Example:
-                 Authorization: Bearer <your_token_here>
-                If you do not have a token, please contact the system administrator to obtain one.
-            """.trimIndent()
-                )
-            )
-        }
-    }
+//    install(StatusPages) {
+//        status(HttpStatusCode.Unauthorized) {
+//            call.respond(
+//                HttpStatusCode.Unauthorized,
+//                createErrorResponse(
+//                    code = HttpStatusCode.Unauthorized.value,
+//                    message = "Unauthorized access. Please provide a valid token.",
+//                    details = """
+//                The request was denied due to missing or invalid authentication credentials.
+//                if you are added your token in the header, please check if it is correct or is not expired.
+//
+//                To authenticate, please include a valid token in the request header:
+//                Example:
+//                 Authorization: Bearer <your_token_here>
+//                If you do not have a token, please contact the system administrator to obtain one.
+//            """.trimIndent()
+//                )
+//            )
+//        }
+//    }
 }

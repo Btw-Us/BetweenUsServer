@@ -38,15 +38,17 @@ fun Routing.allLogInRoutes() {
     logInWithOAuth()
     logInWithGoogle()
     setUpUserProfile()
+    checkUserNameAvailable()
+    checkUserPassword()
 }
 
 
 fun Routing.logInWithGoogle() {
     authenticate("auth-bearer") {
         post(LoginRoutes.LogInWithGoogle.path) {
+            val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
             checkDeviceIntegrity(false) { authParam ->
                 val user = call.receive<RegisterUserRequest>()
-                val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
                 try {
                     val loggedUser = authTokenService.createUser(
                         user.toUserEntity(),
@@ -73,8 +75,11 @@ fun Routing.logInWithGoogle() {
 fun Routing.setUpUserProfile() {
     authenticate("auth-bearer") {
         post(LoginRoutes.SetUpUserProfile.path) {
-            checkDeviceIntegrity { authParam ->
-                val setUpUserProfile = call.receive<SetUpUserProfile>()
+            val setUpUserProfile = call.receive<SetUpUserProfile>()
+            val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+            checkDeviceIntegrity(
+                userRepository = authTokenService,
+            ) { authParam ->
                 if (authParam.userId != setUpUserProfile.userId) {
                     call.respond(
                         status = HttpStatusCode.Unauthorized, message = createErrorResponse(
@@ -85,7 +90,7 @@ fun Routing.setUpUserProfile() {
                     )
                     return@checkDeviceIntegrity
                 }
-                val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+
                 val isDeviceValid = authTokenService.checkIsUserDeviceValid(
                     userId = setUpUserProfile.userId,
                     deviceId = authParam.deviceId ?: ""
@@ -187,6 +192,55 @@ fun Routing.logInWithOAuth() {
                         details = e.message ?: "Unknown error occurred while fetching user info."
                     )
                 )
+            }
+        }
+    }
+}
+
+
+fun Routing.checkUserNameAvailable() {
+    authenticate("auth-bearer") {
+        get(LoginRoutes.CheckUserNameAvailability.path) {
+            val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+            checkDeviceIntegrity(
+                userRepository = authTokenService,
+            ) {
+                val userName = call.queryParameters["username"] ?: ""
+                if (userName.isBlank()) {
+                    call.respond(
+                        status = HttpStatusCode.BadRequest, message = createErrorResponse(
+                            code = HttpStatusCode.BadRequest.value,
+                            message = "Username cannot be empty.",
+                            details = "Please provide a valid username to check availability."
+                        )
+                    )
+                    return@checkDeviceIntegrity
+                }
+
+                try {
+                    val isAvailable = authTokenService.checkIsUserNameAvailable(userName)
+                    if (!isAvailable) {
+                        call.respond(
+                            status = HttpStatusCode.Conflict, message = createErrorResponse(
+                                code = HttpStatusCode.Conflict.value,
+                                message = "Username is already taken.",
+                                details = "Please choose a different username."
+                            )
+                        )
+                    } else {
+                        call.respond(
+                            status = HttpStatusCode.OK, message = true
+                        )
+                    }
+                } catch (e: Exception) {
+                    call.respond(
+                        status = HttpStatusCode.BadRequest, message = createErrorResponse(
+                            code = HttpStatusCode.BadRequest.value,
+                            message = "Failed to check username availability.",
+                            details = e.message ?: "Unknown error occurred while checking username availability."
+                        )
+                    )
+                }
             }
         }
     }
