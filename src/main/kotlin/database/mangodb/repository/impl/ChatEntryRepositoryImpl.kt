@@ -10,8 +10,8 @@
 
 package com.aatech.data.mangodb.repository.impl
 
-import com.aatech.data.mangodb.model.ChatEntryModel
-import com.aatech.data.mangodb.repository.ChatEntryRepository
+import com.aatech.database.mangodb.model.ChatEntryModel
+import com.aatech.database.mangodb.repository.ChatEntryRepository
 import com.aatech.plugin.configureMongoDB
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 

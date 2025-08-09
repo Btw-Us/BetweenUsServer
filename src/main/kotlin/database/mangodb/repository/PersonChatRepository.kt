@@ -8,9 +8,9 @@
  *
  */
 
-package com.aatech.data.mangodb.repository
+package com.aatech.database.mangodb.repository
 
-import com.aatech.data.mangodb.model.PersonalChatModel
+import com.aatech.database.mangodb.model.PersonalChatModel
 
 interface PersonChatRepository {
     suspend fun createChat(model : PersonalChatModel): String

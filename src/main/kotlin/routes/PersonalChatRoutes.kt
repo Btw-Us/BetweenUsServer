@@ -13,8 +13,8 @@ package com.aatech.routes
 import com.aatech.config.api_config.PersonalChatRoutes
 import com.aatech.config.api_config.checkAuth
 import com.aatech.config.response.createErrorResponse
-import com.aatech.data.mangodb.model.PersonalChatModel
-import com.aatech.data.mangodb.repository.PersonChatRepository
+import com.aatech.database.mangodb.model.PersonalChatModel
+import com.aatech.database.mangodb.repository.PersonChatRepository
 import com.aatech.data.mangodb.repository.impl.PersonChatRepositoryImp
 import io.ktor.http.*
 import io.ktor.server.auth.*

@@ -8,7 +8,7 @@
  *
  */
 
-package com.aatech.data.mangodb.model
+package com.aatech.database.mangodb.model
 
 import kotlinx.serialization.Serializable
 import org.bson.codecs.pojo.annotations.BsonId
@@ -16,7 +16,7 @@ import org.bson.types.ObjectId
 
 @Serializable
 data class PersonalChatModel(
-    @BsonId
+    @param:BsonId
     val id: String = ObjectId().toString(),
     val userId: String,
     val friendId: String,
@@ -38,7 +38,7 @@ enum class MessageType {
 
 @Serializable
 data class ChatEntryModel(
-    @BsonId
+    @param:BsonId
     val id: String = ObjectId().toString(),
     val chatId: String,
     val userId: String,
