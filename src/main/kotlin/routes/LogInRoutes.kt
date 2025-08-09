@@ -90,21 +90,6 @@ fun Routing.setUpUserProfile() {
                     )
                     return@checkDeviceIntegrity
                 }
-
-                val isDeviceValid = authTokenService.checkIsUserDeviceValid(
-                    userId = setUpUserProfile.userId,
-                    deviceId = authParam.deviceId ?: ""
-                )
-                if (!isDeviceValid) {
-                    call.respond(
-                        status = HttpStatusCode.Unauthorized, message = createErrorResponse(
-                            code = HttpStatusCode.Unauthorized.value,
-                            message = "Unauthorized access. Invalid device.",
-                            details = "The device ID in the request does not match the authenticated user's device."
-                        )
-                    )
-                    return@checkDeviceIntegrity
-                }
                 if (setUpUserProfile.passwordHash.isBlank()) {
                     call.respond(
                         status = HttpStatusCode.BadRequest, message = createErrorResponse(
