@@ -8,10 +8,10 @@
  *
  */
 
-package com.aatech.database.mangodb.repository
+package com.aatech.database.mongodb.repository
 
-import com.aatech.database.mangodb.model.Message
-import com.aatech.database.mangodb.model.PersonalChatRoom
+import com.aatech.database.mongodb.model.Message
+import com.aatech.database.mongodb.model.PersonalChatRoom
 import kotlinx.coroutines.flow.Flow
 
 interface PersonChatRepository {

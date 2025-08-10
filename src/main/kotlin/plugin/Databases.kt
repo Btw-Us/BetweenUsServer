@@ -10,8 +10,8 @@
 
 package com.aatech.plugin
 
-import com.aatech.database.mangodb.model.Message
-import com.aatech.database.mangodb.model.PersonalChatRoom
+import com.aatech.database.mongodb.model.Message
+import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.mysql.config.DatabaseConfig
 import com.aatech.database.mysql.model.*
 import com.aatech.utils.MongoDbCollectionNames

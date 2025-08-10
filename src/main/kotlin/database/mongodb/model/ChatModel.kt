@@ -8,7 +8,7 @@
  *
  */
 
-package com.aatech.database.mangodb.model
+package com.aatech.database.mongodb.model
 
 import kotlinx.serialization.Serializable
 import org.bson.codecs.pojo.annotations.BsonId

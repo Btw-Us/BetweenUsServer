@@ -15,8 +15,8 @@
 
 package com.aatech.dagger.modules
 
-import com.aatech.database.mangodb.repository.PersonChatRepository
-import com.aatech.database.mangodb.repository.impl.PersonChatRepositoryImp
+import com.aatech.database.mongodb.repository.PersonChatRepository
+import com.aatech.database.mongodb.repository.impl.PersonChatRepositoryImp
 import com.aatech.plugin.configureMongoDB
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import dagger.Module

@@ -8,15 +8,16 @@
  *
  */
 
-package com.aatech.database.mangodb.repository.impl
+package com.aatech.database.mongodb.repository.impl
 
-import com.aatech.database.mangodb.model.Message
-import com.aatech.database.mangodb.model.PersonalChatRoom
-import com.aatech.database.mangodb.repository.PersonChatRepository
+import com.aatech.database.mongodb.model.Message
+import com.aatech.database.mongodb.model.PersonalChatRoom
+import com.aatech.database.mongodb.repository.PersonChatRepository
 import com.aatech.plugin.configureMongoDB
 import com.aatech.utils.MongoDbCollectionNames
 import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
+import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -65,7 +66,7 @@ class PersonChatRepositoryImp @Inject constructor(
             )
         )
         return personalChatCollection.watch(pipeline)
-            .fullDocument(com.mongodb.client.model.changestream.FullDocument.UPDATE_LOOKUP)
+            .fullDocument(FullDocument.UPDATE_LOOKUP)
             .map { changeStreamDocument ->
                 changeStreamDocument.fullDocument ?: throw Exception("No full document found")
             }
@@ -88,7 +89,7 @@ class PersonChatRepositoryImp @Inject constructor(
             )
         )
         return messageCollection.watch(pipeline)
-            .fullDocument(com.mongodb.client.model.changestream.FullDocument.UPDATE_LOOKUP)
+            .fullDocument(FullDocument.UPDATE_LOOKUP)
             .map { changeStreamDocument ->
                 changeStreamDocument.fullDocument ?: throw Exception("No full document found")
             }

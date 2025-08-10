@@ -13,9 +13,9 @@ package com.aatech.routes
 import com.aatech.config.api_config.PersonalChatRoutes
 import com.aatech.config.api_config.checkAuth
 import com.aatech.config.response.createErrorResponse
-import com.aatech.database.mangodb.model.PersonalChatRoom
-import com.aatech.database.mangodb.repository.PersonChatRepository
-import com.aatech.database.mangodb.repository.impl.PersonChatRepositoryImp
+import com.aatech.database.mongodb.model.PersonalChatRoom
+import com.aatech.database.mongodb.repository.PersonChatRepository
+import com.aatech.database.mongodb.repository.impl.PersonChatRepositoryImp
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
