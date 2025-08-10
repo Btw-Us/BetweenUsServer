@@ -12,17 +12,15 @@ package com.aatech.database.mangodb.repository
 
 import com.aatech.database.mangodb.model.Message
 import com.aatech.database.mangodb.model.PersonalChatRoom
+import kotlinx.coroutines.flow.Flow
 
 interface PersonChatRepository {
-    suspend fun createChat(model : PersonalChatRoom): String
-
-    suspend fun getAllChats(userId: String, limit: Int = 50, offset: Int = 0): List<PersonalChatRoom>
+    suspend fun createChat(model: PersonalChatRoom): String
 
     suspend fun addChatEntry(
         model: Message
     ): String
 
-    suspend fun getChatEntries(chatId: String, limit: Int = 50, offset: Int = 0): List<Message>
-
-
+    fun watchPersonalChats(userId: String): Flow<PersonalChatRoom>
+    fun watchChatEntries(personalChatRoomId: String): Flow<Message>
 }

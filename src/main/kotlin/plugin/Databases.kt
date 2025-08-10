@@ -98,6 +98,15 @@ suspend fun createIndexes(
             Indexes.ascending("friendId")
         )
     )
+    chatRoomsCollection.createIndex(Indexes.ascending("userName"))
+    chatRoomsCollection.createIndex(Indexes.ascending("friendName"))
+    chatRoomsCollection.createIndex(
+        Indexes.compoundIndex(
+            Indexes.ascending("userName"),
+            Indexes.ascending("friendName")
+        )
+    )
+
 
     // Message indexes
     messagesCollection.createIndex(Indexes.ascending("chatRoomId"))

@@ -15,40 +15,83 @@ import com.aatech.database.mangodb.model.PersonalChatRoom
 import com.aatech.database.mangodb.repository.PersonChatRepository
 import com.aatech.plugin.configureMongoDB
 import com.aatech.utils.MongoDbCollectionNames
+import com.mongodb.client.model.Aggregates
+import com.mongodb.client.model.Filters
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
-class PersonChatRepositoryImp(
+class PersonChatRepositoryImp @Inject constructor(
     database: MongoDatabase = configureMongoDB()
 ) : PersonChatRepository {
 
-    private val collection = database.getCollection<PersonalChatRoom>(MongoDbCollectionNames.PersonalChatRoom.cName)
+    private val personalChatCollection =
+        database.getCollection<PersonalChatRoom>(MongoDbCollectionNames.PersonalChatRoom.cName)
+    private val messageCollection = database.getCollection<Message>(MongoDbCollectionNames.Message.cName)
     override suspend fun createChat(model: PersonalChatRoom): String {
         return try {
-            val result = collection.insertOne(model)
+            val result = personalChatCollection.insertOne(model)
             result.insertedId?.asString()?.value ?: throw Exception("Failed to create chat")
         } catch (e: Exception) {
             throw Exception("Error creating chat: ${e.message}", e)
         }
     }
 
-    override suspend fun getAllChats(
-        userId: String,
-        limit: Int,
-        offset: Int
-    ): List<PersonalChatRoom> {
-        return emptyList()
-    }
-
     override suspend fun addChatEntry(model: Message): String {
-        TODO("Not yet implemented")
+        return try {
+            val result = messageCollection.insertOne(model)
+            result.insertedId?.asString()?.value ?: throw Exception("Failed to add chat entry")
+        } catch (e: Exception) {
+            throw Exception("Error adding chat entry: ${e.message}", e)
+        }
     }
 
-    override suspend fun getChatEntries(
-        chatId: String,
-        limit: Int,
-        offset: Int
-    ): List<Message> {
-        TODO("Not yet implemented")
+    override fun watchPersonalChats(userId: String): Flow<PersonalChatRoom> {
+        val pipeline = mutableListOf(
+            Aggregates.match(
+                Filters.`in`(
+                    "operationType",
+                    listOf("insert", "update", "replace", "delete")
+                )
+            )
+        )
+        pipeline.add(
+            Aggregates.match(
+                Filters.or(
+                    Filters.eq("userId", userId),
+                    Filters.eq("friendId", userId)
+                )
+            )
+        )
+        return personalChatCollection.watch(pipeline)
+            .fullDocument(com.mongodb.client.model.changestream.FullDocument.UPDATE_LOOKUP)
+            .map { changeStreamDocument ->
+                changeStreamDocument.fullDocument ?: throw Exception("No full document found")
+            }
+    }
+
+    override fun watchChatEntries(personalChatRoomId: String): Flow<Message> {
+        val pipeline = mutableListOf(
+            Aggregates.match(
+                Filters.`in`(
+                    "operationType",
+                    listOf("insert", "update", "replace", "delete")
+                )
+            )
+        )
+        pipeline.add(
+            Aggregates.match(
+                Filters.or(
+                    Filters.eq("chatRoomId", personalChatRoomId),
+                )
+            )
+        )
+        return messageCollection.watch(pipeline)
+            .fullDocument(com.mongodb.client.model.changestream.FullDocument.UPDATE_LOOKUP)
+            .map { changeStreamDocument ->
+                changeStreamDocument.fullDocument ?: throw Exception("No full document found")
+            }
     }
 
 }

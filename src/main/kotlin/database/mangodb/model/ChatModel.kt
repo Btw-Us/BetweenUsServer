@@ -10,8 +10,6 @@
 
 package com.aatech.database.mangodb.model
 
-import com.mongodb.client.model.Indexes
-import com.mongodb.kotlin.client.coroutine.MongoCollection
 import kotlinx.serialization.Serializable
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
@@ -22,6 +20,8 @@ data class PersonalChatRoom(
     val id: String = ObjectId().toString(),
     val userId: String,
     val friendId: String,
+    val userName: String,
+    val friendName: String,
     val lastMessage: String? = null,
     val lastMessageTime: Long? = null,
     val unreadCount: Int = 0,
