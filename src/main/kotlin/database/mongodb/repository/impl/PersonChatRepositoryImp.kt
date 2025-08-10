@@ -17,19 +17,21 @@ import com.aatech.plugin.configureMongoDB
 import com.aatech.utils.MongoDbCollectionNames
 import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
+import com.mongodb.client.model.Sorts
 import com.mongodb.client.model.changestream.FullDocument
+import com.mongodb.client.model.changestream.OperationType
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.*
 
-class PersonChatRepositoryImp @Inject constructor(
+class PersonChatRepositoryImp(
     database: MongoDatabase = configureMongoDB()
 ) : PersonChatRepository {
 
     private val personalChatCollection =
         database.getCollection<PersonalChatRoom>(MongoDbCollectionNames.PersonalChatRoom.cName)
     private val messageCollection = database.getCollection<Message>(MongoDbCollectionNames.Message.cName)
+
     override suspend fun createChat(model: PersonalChatRoom): String {
         return try {
             val result = personalChatCollection.insertOne(model)
@@ -38,6 +40,7 @@ class PersonChatRepositoryImp @Inject constructor(
             throw Exception("Error creating chat: ${e.message}", e)
         }
     }
+
 
     override suspend fun addChatEntry(model: Message): String {
         return try {
@@ -48,31 +51,121 @@ class PersonChatRepositoryImp @Inject constructor(
         }
     }
 
-    override fun watchPersonalChats(userId: String): Flow<PersonalChatRoom> {
-        val pipeline = mutableListOf(
-            Aggregates.match(
-                Filters.`in`(
-                    "operationType",
-                    listOf("insert", "update", "replace", "delete")
-                )
-            )
-        )
-        pipeline.add(
-            Aggregates.match(
+    override suspend fun getInitialPersonalChats(userID: String): List<PersonalChatRoom> {
+        return personalChatCollection
+            .find(
                 Filters.or(
-                    Filters.eq("userId", userId),
-                    Filters.eq("friendId", userId)
+                    Filters.eq("userId", userID),
+                    Filters.eq("friendId", userID)
                 )
             )
-        )
-        return personalChatCollection.watch(pipeline)
-            .fullDocument(FullDocument.UPDATE_LOOKUP)
-            .map { changeStreamDocument ->
-                changeStreamDocument.fullDocument ?: throw Exception("No full document found")
-            }
+            .sort(Sorts.descending("lastMessageTime"))
+            .toList()
     }
 
-    override fun watchChatEntries(personalChatRoomId: String): Flow<Message> {
+    override fun watchPersonalChats(userId: String): Flow<List<PersonalChatRoom>> {
+        val pipeline = listOf(
+            Aggregates.match(
+                Filters.or(
+                    Filters.eq("fullDocument.userId", userId),
+                    Filters.eq("fullDocument.friendId", userId)
+                )
+            )
+        )
+
+        return personalChatCollection.watch(pipeline)
+            .fullDocument(FullDocument.UPDATE_LOOKUP)
+            .filter { changeStreamDocument ->
+                // Filter changes that are relevant to this user
+                when (changeStreamDocument.operationType) {
+                    OperationType.INSERT, OperationType.UPDATE, OperationType.REPLACE -> {
+                        val document = changeStreamDocument.fullDocument
+                        document != null && (document.userId == userId || document.friendId == userId)
+                    }
+
+                    OperationType.DELETE -> {
+                        // For deletes, we need to check if the deleted document was relevant
+                        // This is trickier since we don't have the full document
+                        // We'll need to track this differently or accept all deletes
+                        true
+                    }
+
+                    else -> false
+                }
+            }
+            .onEach { changeStreamDocument ->
+                println("Change detected for user $userId: ${changeStreamDocument.operationType} on document ${changeStreamDocument.fullDocument?.id}")
+            }
+            .scan(emptyList<PersonalChatRoom>()) { currentList, changeStreamDocument ->
+                try {
+                    when (changeStreamDocument.operationType) {
+                        OperationType.INSERT -> {
+                            val document = changeStreamDocument.fullDocument
+                            if (document != null && (document.userId == userId || document.friendId == userId)) {
+                                println("INSERT: Adding document ${document.id} for user $userId")
+                                currentList + document
+                            } else {
+                                currentList
+                            }
+                        }
+
+                        OperationType.UPDATE, OperationType.REPLACE -> {
+                            val document = changeStreamDocument.fullDocument
+                            if (document != null && (document.userId == userId || document.friendId == userId)) {
+                                println("UPDATE/REPLACE: Updating document ${document.id} for user $userId")
+                                // Remove old version if exists, add new version
+                                val filteredList = currentList.filter { it.id != document.id }
+                                filteredList + document
+                            } else {
+                                currentList
+                            }
+                        }
+
+                        OperationType.DELETE -> {
+                            val documentId = changeStreamDocument.documentKey?.get("_id")?.asString()?.value
+                            if (documentId != null) {
+                                println("DELETE: Removing document $documentId for user $userId")
+                                currentList.filter { it.id != documentId }
+                            } else {
+                                println("DELETE: No document key found")
+                                currentList
+                            }
+                        }
+
+                        else -> {
+                            println("Other operation: ${changeStreamDocument.operationType}")
+                            currentList
+                        }
+                    }
+                } catch (e: Exception) {
+                    println("Error processing change stream document: ${e.message}")
+                    e.printStackTrace()
+                    currentList // Return current list on error
+                }
+            }
+            .distinctUntilChanged() // Only emit when the list actually changes
+            .onStart {
+                println("Starting change stream for user $userId")
+            }
+            .onEach { chatRooms ->
+                println("Emitting ${chatRooms.size} chat rooms for user $userId")
+            }
+            .catch { e ->
+                println("Error in change stream for user $userId: ${e.message}")
+                e.printStackTrace()
+                // Get fresh data from database
+                try {
+                    val freshData = getInitialPersonalChats(userId)
+                    emit(freshData)
+                } catch (dbError: Exception) {
+                    println("Failed to get fresh data: ${dbError.message}")
+                    emit(emptyList())
+                }
+            }
+            .flowOn(Dispatchers.IO)
+    }
+
+    override fun watchChatEntries(personalChatRoomId: String): Flow<List<Message>> {
         val pipeline = mutableListOf(
             Aggregates.match(
                 Filters.`in`(
@@ -90,8 +183,21 @@ class PersonChatRepositoryImp @Inject constructor(
         )
         return messageCollection.watch(pipeline)
             .fullDocument(FullDocument.UPDATE_LOOKUP)
-            .map { changeStreamDocument ->
-                changeStreamDocument.fullDocument ?: throw Exception("No full document found")
+            .scan(emptyList()) { currentList, changeStreamDocument ->
+                val document = changeStreamDocument.fullDocument
+                    ?: throw Exception("No full document found")
+                when (changeStreamDocument.operationType) {
+                    OperationType.INSERT -> currentList + document
+                    OperationType.UPDATE, OperationType.REPLACE -> {
+                        currentList.map { if (it.id == document.id) document else it }
+                    }
+
+                    OperationType.DELETE -> {
+                        currentList.filter { it.id != document.id }
+                    }
+
+                    else -> currentList
+                }
             }
     }
 

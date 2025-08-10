@@ -2,6 +2,7 @@ package com.aatech.plugin
 
 import com.aatech.config.api_config.CURRENT_VERSION
 import com.aatech.routes.allLogInRoutes
+import com.aatech.routes.allPersonalChatRoutes
 import com.aatech.routes.authToken
 import com.aatech.routes.checkHealth
 import com.aatech.routes.personalChatRoutes
@@ -37,7 +38,7 @@ fun Application.configureRouting(
         hello()
         checkHealth()
         authToken()
-        personalChatRoutes()
+        allPersonalChatRoutes()
         allLogInRoutes()
     }
 }

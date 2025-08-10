@@ -19,6 +19,7 @@ fun main(args: Array<String>) {
 
 fun Application.mainModule() {
     configureAuthentication()
+    configureWebSocket()
     configureRouting()
     configureSerialization()
     configureMonitoring()

@@ -17,10 +17,12 @@ import kotlinx.coroutines.flow.Flow
 interface PersonChatRepository {
     suspend fun createChat(model: PersonalChatRoom): String
 
+    suspend fun getInitialPersonalChats(userID: String): List<PersonalChatRoom>
+
     suspend fun addChatEntry(
         model: Message
     ): String
 
-    fun watchPersonalChats(userId: String): Flow<PersonalChatRoom>
-    fun watchChatEntries(personalChatRoomId: String): Flow<Message>
+    fun watchPersonalChats(userId: String): Flow<List<PersonalChatRoom>>
+    fun watchChatEntries(personalChatRoomId: String): Flow<List<Message>>
 }

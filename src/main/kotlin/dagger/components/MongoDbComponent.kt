@@ -15,7 +15,9 @@
 
 package com.aatech.dagger.components
 
+import com.aatech.dagger.modules.MongoDbModule
 import com.aatech.database.mongodb.repository.PersonChatRepository
+import com.aatech.websocket.cm.PersonChatRoomConnectionManager
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import dagger.Component
 import javax.inject.Singleton
@@ -23,11 +25,13 @@ import javax.inject.Singleton
 @Singleton
 @Component(
     modules = [
-        MongoDbComponent::class
+        MongoDbModule::class
     ]
 )
 interface MongoDbComponent {
     fun getMongoDbDatabase(): MongoDatabase
 
     fun getPersonChatRepository(): PersonChatRepository
+
+    fun getPersonChatRoomConnectionManager(): PersonChatRoomConnectionManager
 }
