@@ -8,19 +8,20 @@
  *
  */
 
-package com.aatech.data.mangodb.repository.impl
+package com.aatech.database.mangodb.repository.impl
 
-import com.aatech.database.mangodb.model.PersonalChatModel
+import com.aatech.database.mangodb.model.Message
+import com.aatech.database.mangodb.model.PersonalChatRoom
 import com.aatech.database.mangodb.repository.PersonChatRepository
 import com.aatech.plugin.configureMongoDB
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 
 class PersonChatRepositoryImp(
-    private val database: MongoDatabase = configureMongoDB()
+    database: MongoDatabase = configureMongoDB()
 ) : PersonChatRepository {
-    private val collection = database.getCollection<PersonalChatModel>("personal_chats")
+    private val collection = database.getCollection<PersonalChatRoom>("personal_chats")
 
-    override suspend fun createChat(model: PersonalChatModel): String {
+    override suspend fun createChat(model: PersonalChatRoom): String {
         return try {
             val result = collection.insertOne(model)
             result.insertedId?.asString()?.value ?: throw Exception("Failed to create chat")
@@ -33,8 +34,20 @@ class PersonChatRepositoryImp(
         userId: String,
         limit: Int,
         offset: Int
-    ): List<PersonalChatModel> {
+    ): List<PersonalChatRoom> {
         return emptyList()
+    }
+
+    override suspend fun addChatEntry(model: Message): String {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getChatEntries(
+        chatId: String,
+        limit: Int,
+        offset: Int
+    ): List<Message> {
+        TODO("Not yet implemented")
     }
 
 }

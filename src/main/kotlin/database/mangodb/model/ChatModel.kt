@@ -15,7 +15,7 @@ import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 @Serializable
-data class PersonalChatModel(
+data class PersonalChatRoom(
     @param:BsonId
     val id: String = ObjectId().toString(),
     val userId: String,
@@ -37,7 +37,7 @@ enum class MessageType {
 }
 
 @Serializable
-data class ChatEntryModel(
+data class Message(
     @param:BsonId
     val id: String = ObjectId().toString(),
     val chatId: String,

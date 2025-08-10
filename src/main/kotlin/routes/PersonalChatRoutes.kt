@@ -13,9 +13,9 @@ package com.aatech.routes
 import com.aatech.config.api_config.PersonalChatRoutes
 import com.aatech.config.api_config.checkAuth
 import com.aatech.config.response.createErrorResponse
-import com.aatech.database.mangodb.model.PersonalChatModel
+import com.aatech.database.mangodb.model.PersonalChatRoom
 import com.aatech.database.mangodb.repository.PersonChatRepository
-import com.aatech.data.mangodb.repository.impl.PersonChatRepositoryImp
+import com.aatech.database.mangodb.repository.impl.PersonChatRepositoryImp
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
@@ -28,7 +28,7 @@ fun Routing.personalChatRoutes() {
             checkAuth { authParam ->
                 val personChatRepository: PersonChatRepository = PersonChatRepositoryImp()
                 val userId = authParam.userId
-                val chatModel = call.receive<PersonalChatModel>()
+                val chatModel = call.receive<PersonalChatRoom>()
                 if (chatModel.userId != userId) {
                     call.respond(
                         status = HttpStatusCode.BadRequest,

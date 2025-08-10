@@ -10,10 +10,19 @@
 
 package com.aatech.database.mangodb.repository
 
-import com.aatech.database.mangodb.model.PersonalChatModel
+import com.aatech.database.mangodb.model.Message
+import com.aatech.database.mangodb.model.PersonalChatRoom
 
 interface PersonChatRepository {
-    suspend fun createChat(model : PersonalChatModel): String
+    suspend fun createChat(model : PersonalChatRoom): String
 
-    suspend fun getAllChats(userId: String, limit: Int = 50, offset: Int = 0): List<PersonalChatModel>
+    suspend fun getAllChats(userId: String, limit: Int = 50, offset: Int = 0): List<PersonalChatRoom>
+
+    suspend fun addChatEntry(
+        model: Message
+    ): String
+
+    suspend fun getChatEntries(chatId: String, limit: Int = 50, offset: Int = 0): List<Message>
+
+
 }
