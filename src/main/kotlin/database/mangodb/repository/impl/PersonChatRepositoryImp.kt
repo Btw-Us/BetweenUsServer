@@ -14,13 +14,14 @@ import com.aatech.database.mangodb.model.Message
 import com.aatech.database.mangodb.model.PersonalChatRoom
 import com.aatech.database.mangodb.repository.PersonChatRepository
 import com.aatech.plugin.configureMongoDB
+import com.aatech.utils.MongoDbCollectionNames
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 
 class PersonChatRepositoryImp(
     database: MongoDatabase = configureMongoDB()
 ) : PersonChatRepository {
-    private val collection = database.getCollection<PersonalChatRoom>("personal_chats")
 
+    private val collection = database.getCollection<PersonalChatRoom>(MongoDbCollectionNames.PersonalChatRoom.cName)
     override suspend fun createChat(model: PersonalChatRoom): String {
         return try {
             val result = collection.insertOne(model)

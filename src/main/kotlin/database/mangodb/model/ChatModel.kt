@@ -10,6 +10,8 @@
 
 package com.aatech.database.mangodb.model
 
+import com.mongodb.client.model.Indexes
+import com.mongodb.kotlin.client.coroutine.MongoCollection
 import kotlinx.serialization.Serializable
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
@@ -40,8 +42,9 @@ enum class MessageType {
 data class Message(
     @param:BsonId
     val id: String = ObjectId().toString(),
-    val chatId: String,
+    val chatRoomId: String,
     val userId: String,
+    val friendId: String,
     val message: String,
     val messageType: MessageType = MessageType.TEXT,
     val mediaUrl: String? = null,

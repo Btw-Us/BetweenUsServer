@@ -10,11 +10,18 @@
 
 package com.aatech.plugin
 
+import com.aatech.database.mangodb.model.Message
+import com.aatech.database.mangodb.model.PersonalChatRoom
 import com.aatech.database.mysql.config.DatabaseConfig
 import com.aatech.database.mysql.model.*
+import com.aatech.utils.MongoDbCollectionNames
 import com.aatech.utils.getEnv
+import com.mongodb.client.model.Indexes
 import com.mongodb.kotlin.client.coroutine.MongoClient
+import com.mongodb.kotlin.client.coroutine.MongoCollection
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.migration.MigrationUtils
@@ -59,5 +66,48 @@ fun configureMongoDB(): MongoDatabase {
     // Try authenticating against the admin database instead of the target database
     val connectionString = "mongodb://$encodedUserName:$encodedPassword@$mangoDbUrl/$databaseName?authSource=admin"
     val mongoClient = MongoClient.create(connectionString)
-    return mongoClient.getDatabase(databaseName)
+    val database = mongoClient.getDatabase(databaseName)
+
+    runBlocking(Dispatchers.IO) {
+        database.createCollection(
+            MongoDbCollectionNames.PersonalChatRoom.cName,
+        )
+        database.createCollection(
+            MongoDbCollectionNames.Message.cName,
+        )
+
+        val personalChatRoomCollection = database
+            .getCollection<PersonalChatRoom>(MongoDbCollectionNames.PersonalChatRoom.cName)
+        val messagesCollection = database
+            .getCollection<Message>(MongoDbCollectionNames.Message.cName)
+        createIndexes(personalChatRoomCollection, messagesCollection)
+    }
+    return database
+}
+
+suspend fun createIndexes(
+    chatRoomsCollection: MongoCollection<PersonalChatRoom>,
+    messagesCollection: MongoCollection<Message>
+) {
+    // ChatRoom indexes
+    chatRoomsCollection.createIndex(Indexes.ascending("userId"))
+    chatRoomsCollection.createIndex(Indexes.ascending("friendId"))
+    chatRoomsCollection.createIndex(
+        Indexes.compoundIndex(
+            Indexes.ascending("userId"),
+            Indexes.ascending("friendId")
+        )
+    )
+
+    // Message indexes
+    messagesCollection.createIndex(Indexes.ascending("chatRoomId"))
+    messagesCollection.createIndex(Indexes.ascending("userId"))
+    messagesCollection.createIndex(Indexes.ascending("friendId"))
+    messagesCollection.createIndex(Indexes.ascending("timestamp"))
+    messagesCollection.createIndex(
+        Indexes.compoundIndex(
+            Indexes.ascending("chatRoomId"),
+            Indexes.ascending("timestamp")
+        )
+    )
 }
