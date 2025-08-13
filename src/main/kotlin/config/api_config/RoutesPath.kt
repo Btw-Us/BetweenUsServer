@@ -37,7 +37,7 @@ sealed class UserRoutes(val path: String) {
     object UpdateUserPrivacySettings : UserRoutes("$USER/privacy-settings/update")
     object GetUserStatus : UserRoutes("$USER/status")
     object UpdateUserStatus : UserRoutes("$USER/status/update")
-    object SearchUsers : UserRoutes("$USER/search")
+    object FindFriends : UserRoutes("$USER/find-friends")
     object GetFriendsList : UserRoutes("$USER/friends")
     object AddFriend : UserRoutes("$USER/friends/add")
     object RemoveFriend : UserRoutes("$USER/friends/remove")

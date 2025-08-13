@@ -113,6 +113,7 @@ suspend fun RoutingContext.checkAuth(
  */
 suspend fun RoutingContext.checkDeviceIntegrity(
     isCheckForUserId: Boolean = true,
+    currentUserId: String? = null,
     userLogInRepository: UserLogInRepository? = null,
     onSuccess: suspend (AuthenticationParams) -> Unit
 ) {
@@ -123,6 +124,16 @@ suspend fun RoutingContext.checkDeviceIntegrity(
                     code = HttpStatusCode.BadRequest.value,
                     message = "User ID is required.",
                     details = "Please provide a valid user ID in the request."
+                )
+            )
+            return@checkAuth
+        }
+        if (currentUserId != null && authParam.userId != currentUserId) {
+            call.respond(
+                status = HttpStatusCode.Unauthorized, message = createErrorResponse(
+                    code = HttpStatusCode.Unauthorized.value,
+                    message = "Unauthorized user",
+                    details = "The user ID does not match the current user."
                 )
             )
             return@checkAuth

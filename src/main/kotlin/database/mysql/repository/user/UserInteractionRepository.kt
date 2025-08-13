@@ -3,7 +3,7 @@
  *
  * This work is the exclusive property of ayaan.
  *
- * Created: August 13, 2025 08:54 PM
+ * Created: August 13, 2025 09:02 PM
  * Author: ayaan
  * Project: BetweenUsServe
  *
@@ -13,10 +13,18 @@
  * For questions or contributions, contact: ayaan35200@gmail.com
  */
 
-package com.aatech.routes
+package com.aatech.database.mysql.repository.user
 
-import io.ktor.server.routing.*
+import com.aatech.database.mysql.model.entity.User
 
-fun Routing.allUsersRoutes() {
+interface UserInteractionRepository {
+    suspend fun findFriends(
+        loggedUserId: String,
+        userName: String,
+    ): List<User>
 
+    fun sendFriendRequest(
+        userId: String,
+        friendId: String,
+    ): Boolean
 }

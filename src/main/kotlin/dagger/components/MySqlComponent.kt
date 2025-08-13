@@ -2,7 +2,7 @@ package com.aatech.dagger.components
 
 import com.aatech.dagger.modules.MySqlModule
 import com.aatech.database.mysql.repository.auth_token.AuthTokenRepository
-import com.aatech.database.mysql.repository.user.UserIntegrationRepository
+import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import com.aatech.database.mysql.repository.user.UserLogInRepository
 import com.aatech.database.mysql.services.AuthTokenService
 import dagger.Component
@@ -21,6 +21,6 @@ interface MySqlComponent {
     fun getAuthTokenRepository(): AuthTokenRepository
     fun getUserRepository(): UserLogInRepository
     fun getAuthTokenService(): AuthTokenService
-    fun getUserIntegrationRepository(): UserIntegrationRepository
+    fun getUserInteractionRepository(): UserInteractionRepository
 
 }

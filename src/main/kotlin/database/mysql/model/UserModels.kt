@@ -309,7 +309,7 @@ enum class FriendshipStatus {
  *
  */
 object FriendsTable : Table("friends_db") {
-    val id = varchar("pk_friend_id", 255) // UUID for unique friendship record
+    val id = varchar("pk_friend_id", 255)
     val requesterId = varchar("requester_id", 255).references(
         uuid,
         onDelete = ReferenceOption.CASCADE,
