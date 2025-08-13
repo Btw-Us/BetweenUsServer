@@ -3,7 +3,7 @@
  *
  * This work is the exclusive property of ayaan.
  *
- * Created: August 13, 2025 08:54 PM
+ * Created: August 13, 2025 09:02 PM
  * Author: ayaan
  * Project: BetweenUsServe
  *
@@ -13,10 +13,7 @@
  * For questions or contributions, contact: ayaan35200@gmail.com
  */
 
-package com.aatech.routes
+package com.aatech.database.mysql.repository.user
 
-import io.ktor.server.routing.*
-
-fun Routing.allUsersRoutes() {
-
+interface UserIntegrationRepository {
 }

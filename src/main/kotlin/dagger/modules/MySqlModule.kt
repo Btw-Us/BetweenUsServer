@@ -2,7 +2,9 @@ package com.aatech.dagger.modules
 
 import com.aatech.database.mysql.repository.auth_token.AuthTokenRepository
 import com.aatech.database.mysql.repository.auth_token.imp.AuthTokenRepositoryImp
+import com.aatech.database.mysql.repository.user.UserIntegrationRepository
 import com.aatech.database.mysql.repository.user.UserLogInRepository
+import com.aatech.database.mysql.repository.user.impl.UserIntegrationRepositoryImp
 import com.aatech.database.mysql.repository.user.impl.UserLogInRepositoryImp
 import com.aatech.plugin.configureMySqlDatabases
 import dagger.Module
@@ -26,5 +28,10 @@ class MySqlModule {
     @Singleton
     fun provideUserRepository(): UserLogInRepository =
         UserLogInRepositoryImp()
+
+    @Provides
+    @Singleton
+    fun provideUserIntegrationRepository(): UserIntegrationRepository =
+        UserIntegrationRepositoryImp()
 
 }
