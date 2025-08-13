@@ -71,6 +71,7 @@ DATABASE_NAME=your_database_name
 MANGO_DB_URL=your_mongodb_url
 MANGO_DB_USER_NAME=your_mongodb_username
 MANGO_DB_PASSWORD=your_mongodb_password
+MONGO_DB_REPLICA_SET=your_mongo_replica_set_name
 
 
 # --- JWT Authentication ---

@@ -58,11 +58,13 @@ fun configureMongoDB(): MongoDatabase {
     val userName = getEnv("MANGO_DB_USER_NAME")
     val password = getEnv("MANGO_DB_PASSWORD")
     val databaseName = getEnv("DATABASE_NAME")
+    val replicaSet = getEnv("MONGO_DB_REPLICA_SET", "rs0")
 
     val encodedUserName = URLEncoder.encode(userName, StandardCharsets.UTF_8.toString())
     val encodedPassword = URLEncoder.encode(password, StandardCharsets.UTF_8.toString())
 
-    val connectionString = "mongodb://$encodedUserName:$encodedPassword@$mangoDbUrl/$databaseName?replicaSet=myReplicaSet&authSource=admin"
+    val connectionString =
+        "mongodb://$encodedUserName:$encodedPassword@$mangoDbUrl/$databaseName?replicaSet=$replicaSet&authSource=admin"
     val mongoClient = MongoClient.create(connectionString)
     val database = mongoClient.getDatabase(databaseName)
 
@@ -74,34 +76,30 @@ fun configureMongoDB(): MongoDatabase {
             MongoDbCollectionNames.Message.cName,
         )
 
-        val personalChatRoomCollection = database
-            .getCollection<PersonalChatRoom>(MongoDbCollectionNames.PersonalChatRoom.cName)
-        val messagesCollection = database
-            .getCollection<Message>(MongoDbCollectionNames.Message.cName)
+        val personalChatRoomCollection =
+            database.getCollection<PersonalChatRoom>(MongoDbCollectionNames.PersonalChatRoom.cName)
+        val messagesCollection = database.getCollection<Message>(MongoDbCollectionNames.Message.cName)
         createIndexes(personalChatRoomCollection, messagesCollection)
     }
     return database
 }
 
 suspend fun createIndexes(
-    chatRoomsCollection: MongoCollection<PersonalChatRoom>,
-    messagesCollection: MongoCollection<Message>
+    chatRoomsCollection: MongoCollection<PersonalChatRoom>, messagesCollection: MongoCollection<Message>
 ) {
     // ChatRoom indexes
     chatRoomsCollection.createIndex(Indexes.ascending("userId"))
     chatRoomsCollection.createIndex(Indexes.ascending("friendId"))
     chatRoomsCollection.createIndex(
         Indexes.compoundIndex(
-            Indexes.ascending("userId"),
-            Indexes.ascending("friendId")
+            Indexes.ascending("userId"), Indexes.ascending("friendId")
         )
     )
     chatRoomsCollection.createIndex(Indexes.ascending("userName"))
     chatRoomsCollection.createIndex(Indexes.ascending("friendName"))
     chatRoomsCollection.createIndex(
         Indexes.compoundIndex(
-            Indexes.ascending("userName"),
-            Indexes.ascending("friendName")
+            Indexes.ascending("userName"), Indexes.ascending("friendName")
         )
     )
 
@@ -113,8 +111,7 @@ suspend fun createIndexes(
     messagesCollection.createIndex(Indexes.ascending("timestamp"))
     messagesCollection.createIndex(
         Indexes.compoundIndex(
-            Indexes.ascending("chatRoomId"),
-            Indexes.ascending("timestamp")
+            Indexes.ascending("chatRoomId"), Indexes.ascending("timestamp")
         )
     )
 }
