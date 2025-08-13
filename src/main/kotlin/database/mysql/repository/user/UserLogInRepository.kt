@@ -15,7 +15,7 @@ import com.aatech.database.mysql.model.entity.User
 import com.aatech.database.mysql.model.entity.UserLogInResponse
 
 
-interface UserRepository {
+interface UserLogInRepository {
     /**
      * Creates a new user in the database.
      * If the user already exists, it updates the last login time.

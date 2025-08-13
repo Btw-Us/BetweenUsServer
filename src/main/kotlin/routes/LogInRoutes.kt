@@ -23,7 +23,7 @@ import com.aatech.database.mysql.model.entity.RegisterUserRequest
 import com.aatech.database.mysql.model.entity.SetUpUserProfile
 import com.aatech.database.mysql.model.entity.UserLogInResponse
 import com.aatech.database.mysql.model.entity.toUserEntity
-import com.aatech.database.mysql.repository.user.UserRepository
+import com.aatech.database.mysql.repository.user.UserLogInRepository
 import com.aatech.plugin.fetchUserInfo
 import com.aatech.plugin.toUserEntity
 import io.ktor.http.*
@@ -45,7 +45,7 @@ fun Routing.allLogInRoutes() {
 fun Routing.logInWithGoogle() {
     authenticate("auth-bearer") {
         post(LoginRoutes.LogInWithGoogle.path) {
-            val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+            val authTokenService: UserLogInRepository = DaggerMySqlComponent.create().getUserRepository()
             checkDeviceIntegrity(false) { authParam ->
                 val user = call.receive<RegisterUserRequest>()
                 try {
@@ -75,9 +75,9 @@ fun Routing.setUpUserProfile() {
     authenticate("auth-bearer") {
         post(LoginRoutes.SetUpUserProfile.path) {
             val setUpUserProfile = call.receive<SetUpUserProfile>()
-            val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+            val authTokenService: UserLogInRepository = DaggerMySqlComponent.create().getUserRepository()
             checkDeviceIntegrity(
-                userRepository = authTokenService,
+                userLogInRepository = authTokenService,
             ) { authParam ->
                 if (authParam.userId != setUpUserProfile.userId) {
                     call.respond(
@@ -123,9 +123,9 @@ fun Routing.checkUserPassword() {
     authenticate("auth-bearer") {
         post(LoginRoutes.CheckPassword.path) {
             val setUpUserProfile = call.receive<SetUpUserProfile>()
-            val userRepository: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+            val userLogInRepository: UserLogInRepository = DaggerMySqlComponent.create().getUserRepository()
             checkDeviceIntegrity(
-                userRepository = userRepository,
+                userLogInRepository = userLogInRepository,
             ) { authParam ->
                 if (authParam.userId != setUpUserProfile.userId) {
                     call.respond(
@@ -138,7 +138,7 @@ fun Routing.checkUserPassword() {
                     return@checkDeviceIntegrity
                 }
                 try {
-                    val isPasswordCorrect = userRepository.checkUserPassword(
+                    val isPasswordCorrect = userLogInRepository.checkUserPassword(
                         userId = setUpUserProfile.userId,
                         passwordHash = setUpUserProfile.passwordHash
                     )
@@ -190,7 +190,7 @@ fun Routing.logInWithOAuth() {
             }
             try {
                 val response = fetchUserInfo(tokenResponse.accessToken)
-                val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+                val authTokenService: UserLogInRepository = DaggerMySqlComponent.create().getUserRepository()
                 val loggedUser = authTokenService.getUserByEmail(response.toUserEntity().email)
                 if (loggedUser == null) {
                     call.respond(
@@ -225,9 +225,9 @@ fun Routing.logInWithOAuth() {
 fun Routing.checkUserNameAvailable() {
     authenticate("auth-bearer") {
         get(LoginRoutes.CheckUserNameAvailability.path) {
-            val authTokenService: UserRepository = DaggerMySqlComponent.create().getUserRepository()
+            val authTokenService: UserLogInRepository = DaggerMySqlComponent.create().getUserRepository()
             checkDeviceIntegrity(
-                userRepository = authTokenService,
+                userLogInRepository = authTokenService,
             ) {
                 val userName = call.queryParameters["username"] ?: ""
                 if (userName.isBlank()) {

@@ -1,15 +1,9 @@
 package com.aatech.dagger.modules
 
-import com.aatech.database.mysql.repository.user.FriendsRepository
-import com.aatech.database.mysql.repository.user.UserPrivacySettingsRepository
-import com.aatech.database.mysql.repository.user.UserRepository
-import com.aatech.database.mysql.repository.user.UserStatusRepository
-import com.aatech.database.mysql.repository.user.impl.UserPrivacySettingsRepositoryImp
-import com.aatech.database.mysql.repository.user.impl.UserRepositoryImp
-import com.aatech.database.mysql.repository.user.impl.UserStatusTableRepositoryImp
 import com.aatech.database.mysql.repository.auth_token.AuthTokenRepository
 import com.aatech.database.mysql.repository.auth_token.imp.AuthTokenRepositoryImp
-import com.aatech.database.mysql.repository.user.impl.FriendsRepositoryImp
+import com.aatech.database.mysql.repository.user.UserLogInRepository
+import com.aatech.database.mysql.repository.user.impl.UserLogInRepositoryImp
 import com.aatech.plugin.configureMySqlDatabases
 import dagger.Module
 import dagger.Provides
@@ -30,21 +24,7 @@ class MySqlModule {
 
     @Provides
     @Singleton
-    fun provideFriendsRepository(): FriendsRepository =
-        FriendsRepositoryImp()
+    fun provideUserRepository(): UserLogInRepository =
+        UserLogInRepositoryImp()
 
-    @Provides
-    @Singleton
-    fun provideUserRepository(): UserRepository =
-        UserRepositoryImp()
-
-    @Provides
-    @Singleton
-    fun provideUserPrivacySettingsRepository(): UserPrivacySettingsRepository =
-        UserPrivacySettingsRepositoryImp()
-
-    @Provides
-    @Singleton
-    fun provideUserStatusRepository(): UserStatusRepository =
-        UserStatusTableRepositoryImp()
 }

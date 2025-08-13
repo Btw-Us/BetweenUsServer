@@ -12,7 +12,7 @@ package com.aatech.config.api_config
 
 import com.aatech.config.response.createErrorResponse
 import com.aatech.dagger.components.DaggerMySqlComponent
-import com.aatech.database.mysql.repository.user.UserRepository
+import com.aatech.database.mysql.repository.user.UserLogInRepository
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
@@ -107,13 +107,13 @@ suspend fun RoutingContext.checkAuth(
  * Checks the device integrity of the user.
  * This function validates the authentication parameters and checks if the device is authorized for the user.
  * @param isCheckForUserId If true, checks if the user ID is provided.
- * @param userRepository Optional UserRepository to check if the device is valid for the user.
+ * @param userLogInRepository Optional UserRepository to check if the device is valid for the user.
  * @param onSuccess Callback function to be invoked if the device integrity check passes.
  *
  */
 suspend fun RoutingContext.checkDeviceIntegrity(
     isCheckForUserId: Boolean = true,
-    userRepository: UserRepository? = null,
+    userLogInRepository: UserLogInRepository? = null,
     onSuccess: suspend (AuthenticationParams) -> Unit
 ) {
     checkAuth { authParam ->
@@ -147,8 +147,8 @@ suspend fun RoutingContext.checkDeviceIntegrity(
             )
             return@checkAuth
         }
-        if (userRepository != null) {
-            val isDeviceValid = userRepository.checkIsUserDeviceValid(
+        if (userLogInRepository != null) {
+            val isDeviceValid = userLogInRepository.checkIsUserDeviceValid(
                 userId = authParam.userId ?: "",
                 deviceId = authParam.deviceId
             )

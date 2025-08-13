@@ -20,7 +20,7 @@ import com.aatech.database.mysql.model.UserTable
 import com.aatech.database.mysql.model.entity.SetUpUserProfile
 import com.aatech.database.mysql.model.entity.User
 import com.aatech.database.mysql.model.entity.UserLogInResponse
-import com.aatech.database.mysql.repository.user.UserRepository
+import com.aatech.database.mysql.repository.user.UserLogInRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
@@ -28,7 +28,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
-class UserRepositoryImp : UserRepository {
+class UserLogInRepositoryImp : UserLogInRepository {
     override suspend fun createUser(
         user: User,
         deviceInfo: Pair<String, String>
