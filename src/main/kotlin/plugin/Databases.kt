@@ -62,7 +62,6 @@ fun configureMongoDB(): MongoDatabase {
     val encodedUserName = URLEncoder.encode(userName, StandardCharsets.UTF_8.toString())
     val encodedPassword = URLEncoder.encode(password, StandardCharsets.UTF_8.toString())
 
-    val temp= "mongodb://root:Admin%40123@mongo1:27017,mongo2:27017,mongo3:27017/between_us_db?replicaSet=myReplicaSet&authSource=admin"
     val connectionString = "mongodb://$encodedUserName:$encodedPassword@$mangoDbUrl/$databaseName?replicaSet=myReplicaSet&authSource=admin"
     val mongoClient = MongoClient.create(connectionString)
     val database = mongoClient.getDatabase(databaseName)
