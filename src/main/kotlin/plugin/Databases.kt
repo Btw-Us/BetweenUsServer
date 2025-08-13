@@ -54,17 +54,16 @@ fun databaseConfiguration(database: Database) {
 
 
 fun configureMongoDB(): MongoDatabase {
+    val mangoDbUrl = getEnv("MANGO_DB_URL")
     val userName = getEnv("MANGO_DB_USER_NAME")
     val password = getEnv("MANGO_DB_PASSWORD")
     val databaseName = getEnv("DATABASE_NAME")
-    val mangoDbUrl = getEnv("MANGO_DB_URL", "localhost:27017")
 
-    // URL encode the username and password to handle special characters
     val encodedUserName = URLEncoder.encode(userName, StandardCharsets.UTF_8.toString())
     val encodedPassword = URLEncoder.encode(password, StandardCharsets.UTF_8.toString())
 
-    // Try authenticating against the admin database instead of the target database
-    val connectionString = "mongodb://$encodedUserName:$encodedPassword@$mangoDbUrl/$databaseName?authSource=admin"
+    val temp= "mongodb://root:Admin%40123@mongo1:27017,mongo2:27017,mongo3:27017/between_us_db?replicaSet=myReplicaSet&authSource=admin"
+    val connectionString = "mongodb://$encodedUserName:$encodedPassword@$mangoDbUrl/$databaseName?replicaSet=myReplicaSet&authSource=admin"
     val mongoClient = MongoClient.create(connectionString)
     val database = mongoClient.getDatabase(databaseName)
 
