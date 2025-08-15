@@ -42,8 +42,16 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
             joinUserAndFriendsTable(friendsAsRequester, loggedUserId, friendsAsReceiver).selectAll().where {
                 (UserTable.username like "%$userName%") and (UserTable.uuid neq loggedUserId) and ((friendsAsRequester[FriendsTable.status].isNull() or (friendsAsRequester[FriendsTable.status] neq FriendshipStatus.ACCEPTED.name)) and (friendsAsReceiver[FriendsTable.status].isNull() or (friendsAsReceiver[FriendsTable.status] neq FriendshipStatus.ACCEPTED.name))) and ((friendsAsRequester[FriendsTable.status].isNull() or (friendsAsRequester[FriendsTable.status] neq FriendshipStatus.BLOCKED.name)) and (friendsAsReceiver[FriendsTable.status].isNull() or (friendsAsReceiver[FriendsTable.status] neq FriendshipStatus.BLOCKED.name)))
             }.map {
+                val isLoggedUserCreatedReq = when (loggedUserId) {
+                    it[friendsAsRequester[FriendsTable.requesterId]] -> true
+                    it[friendsAsReceiver[FriendsTable.receiverId]] -> false
+                    else -> null
+                }
                 rowToUserAndFriend(
-                    it, friendsAsRequester, friendsAsReceiver
+                    it,
+                    friendsAsRequester,
+                    friendsAsReceiver,
+                    loggedUserId
                 )
             }
         }
@@ -136,7 +144,12 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
                 ).selectAll().where {
                     (friendsAsReceiver[FriendsTable.status] eq FriendshipStatus.PENDING.name) and (UserTable.uuid neq userId)
                 }.map {
-                    rowToUserAndFriend(it, FriendsTable.alias("friends_as_requester"), friendsAsReceiver)
+                    rowToUserAndFriend(
+                        it,
+                        FriendsTable.alias("friends_as_requester"),
+                        friendsAsReceiver,
+                        userId
+                    )
                 }
             }
         }
@@ -155,7 +168,12 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
                 ).selectAll().where {
                     (friendsAsRequester[FriendsTable.status] eq FriendshipStatus.PENDING.name) and (UserTable.uuid neq userId)
                 }.map {
-                    rowToUserAndFriend(it, friendsAsRequester, FriendsTable.alias("friends_as_receiver"))
+                    rowToUserAndFriend(
+                        it,
+                        friendsAsRequester,
+                        FriendsTable.alias("friends_as_receiver"),
+                        userId
+                    )
                 }
             }
         }
@@ -163,7 +181,10 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
 
 
     fun rowToUserAndFriend(
-        row: ResultRow, friendsAsRequester: Alias<FriendsTable>, friendsAsReceiver: Alias<FriendsTable>
+        row: ResultRow,
+        friendsAsRequester: Alias<FriendsTable>,
+        friendsAsReceiver: Alias<FriendsTable>,
+        loggedUserId: String
     ): SearchUserResponse {
         val user = rowToUser(row)
         val requesterStatus = row.getOrNull(friendsAsRequester[FriendsTable.status])?.let {
@@ -173,6 +194,15 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
             FriendshipStatus.valueOf(it)
         }
         val friendshipStatus = requesterStatus ?: receiverStatus
-        return SearchUserResponse(user, friendshipStatus)
+        val isLoggedUserCreatedReq = when (friendshipStatus) {
+            null -> null
+            else -> {
+                val receiverIdFromReceiver = row.getOrNull(friendsAsReceiver[FriendsTable.receiverId])
+                val receiverIdFromRequester = row.getOrNull(friendsAsRequester[FriendsTable.receiverId])
+                (receiverIdFromReceiver ?: receiverIdFromRequester) == loggedUserId
+            }
+        }?.not()
+
+        return SearchUserResponse(user, friendshipStatus,isLoggedUserCreatedReq)
     }
 }

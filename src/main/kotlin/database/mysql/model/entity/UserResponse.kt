@@ -21,5 +21,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SearchUserResponse(
     val user: User,
-    val friendshipStatus: FriendshipStatus? = null
+    val friendshipStatus: FriendshipStatus? = null,
+    val isLoggedUserCreatedReq: Boolean? = null,
 )
