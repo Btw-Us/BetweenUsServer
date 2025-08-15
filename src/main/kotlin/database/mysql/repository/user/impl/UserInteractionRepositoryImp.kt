@@ -24,71 +24,60 @@ import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 class UserInteractionRepositoryImp : UserInteractionRepository {
     override suspend fun findFriends(
-        loggedUserId: String,
-        userName: String
+        loggedUserId: String, userName: String
     ): List<SearchUserResponse> = withContext(Dispatchers.IO) {
         transaction {
             val friendsAsRequester = FriendsTable.alias("friends_as_requester")
             val friendsAsReceiver = FriendsTable.alias("friends_as_receiver")
 
-            UserTable
-                .leftJoin(
+            UserTable.leftJoin(
                     friendsAsRequester,
                     { UserTable.uuid },
                     { friendsAsRequester[FriendsTable.requesterId] },
                     additionalConstraint = {
                         friendsAsRequester[FriendsTable.receiverId] eq loggedUserId
-                    }
-                )
-                .leftJoin(
+                    }).leftJoin(
                     friendsAsReceiver,
                     { UserTable.uuid },
                     { friendsAsReceiver[FriendsTable.receiverId] },
                     additionalConstraint = {
                         friendsAsReceiver[FriendsTable.requesterId] eq loggedUserId
-                    }
-                )
-                .selectAll()
-                .where {
-                    (UserTable.username like "%$userName%") and
-                            (UserTable.uuid neq loggedUserId) and
-                            (
-                                    (friendsAsRequester[FriendsTable.status].isNull() or
-                                            (friendsAsRequester[FriendsTable.status] neq FriendshipStatus.ACCEPTED.name)) and
-                                            (friendsAsReceiver[FriendsTable.status].isNull() or
-                                                    (friendsAsReceiver[FriendsTable.status] neq FriendshipStatus.ACCEPTED.name))
-                                    ) and
-                            (
-                                    (friendsAsRequester[FriendsTable.status].isNull() or
-                                            (friendsAsRequester[FriendsTable.status] neq FriendshipStatus.BLOCKED.name)) and
-                                            (friendsAsReceiver[FriendsTable.status].isNull() or
-                                                    (friendsAsReceiver[FriendsTable.status] neq FriendshipStatus.BLOCKED.name))
-                                    )
-                }
-                .map {
+                    }).selectAll().where {
+                    (UserTable.username like "%$userName%") and (UserTable.uuid neq loggedUserId) and ((friendsAsRequester[FriendsTable.status].isNull() or (friendsAsRequester[FriendsTable.status] neq FriendshipStatus.ACCEPTED.name)) and (friendsAsReceiver[FriendsTable.status].isNull() or (friendsAsReceiver[FriendsTable.status] neq FriendshipStatus.ACCEPTED.name))) and ((friendsAsRequester[FriendsTable.status].isNull() or (friendsAsRequester[FriendsTable.status] neq FriendshipStatus.BLOCKED.name)) and (friendsAsReceiver[FriendsTable.status].isNull() or (friendsAsReceiver[FriendsTable.status] neq FriendshipStatus.BLOCKED.name)))
+                }.map {
                     rowToUserAndFriend(
-                        it,
-                        friendsAsRequester,
-                        friendsAsReceiver
+                        it, friendsAsRequester, friendsAsReceiver
                     )
                 }
         }
     }
 
-    override fun sendFriendRequest(userId: String, friendId: String): Boolean {
-        TODO("Not yet implemented")
+    override suspend fun sendFriendRequest(userId: String, friendId: String): Boolean = withContext(Dispatchers.IO) {
+        transaction {
+            try {
+                val col = FriendsTable.insert {
+                    it[id] = userId + friendId
+                    it[requesterId] = userId
+                    it[receiverId] = friendId
+                    it[status] = FriendshipStatus.PENDING.name
+                    it[requestedAt] = System.currentTimeMillis()
+                }
+                col.insertedCount > 0
+            } catch (e: Exception) {
+                throw e
+            }
+        }
     }
 
 
     fun rowToUserAndFriend(
-        row: ResultRow,
-        friendsAsRequester: Alias<FriendsTable>,
-        friendsAsReceiver: Alias<FriendsTable>
+        row: ResultRow, friendsAsRequester: Alias<FriendsTable>, friendsAsReceiver: Alias<FriendsTable>
     ): SearchUserResponse {
         val user = rowToUser(row)
         val requesterStatus = row.getOrNull(friendsAsRequester[FriendsTable.status])?.let {

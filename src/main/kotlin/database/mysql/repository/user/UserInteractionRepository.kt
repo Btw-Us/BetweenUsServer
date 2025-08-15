@@ -15,9 +15,7 @@
 
 package com.aatech.database.mysql.repository.user
 
-import com.aatech.database.mysql.model.FriendshipStatus
 import com.aatech.database.mysql.model.entity.SearchUserResponse
-import com.aatech.database.mysql.model.entity.User
 
 interface UserInteractionRepository {
     suspend fun findFriends(
@@ -25,7 +23,7 @@ interface UserInteractionRepository {
         userName: String,
     ): List<SearchUserResponse>
 
-    fun sendFriendRequest(
+    suspend fun sendFriendRequest(
         userId: String,
         friendId: String,
     ): Boolean

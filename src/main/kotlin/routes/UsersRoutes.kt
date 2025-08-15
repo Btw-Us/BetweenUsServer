@@ -19,17 +19,21 @@ import com.aatech.config.api_config.UserRoutes
 import com.aatech.config.api_config.checkDeviceIntegrity
 import com.aatech.config.response.createErrorResponse
 import com.aatech.dagger.modules.MySqlModule
+import com.aatech.database.mysql.model.entity.SendFriendRequestBody
 import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import com.aatech.database.mysql.repository.user.UserLogInRepository
 import io.ktor.http.*
 import io.ktor.server.auth.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 
 fun Routing.allUsersRoutes() {
     val userRepository = MySqlModule().provideUserInteractionRepository()
     val userLogInRepository = MySqlModule().provideUserLogInRepository()
-    findFriends(userRepository, userLogInRepository)
+    findFriends(repository = userRepository, userLogInRepository = userLogInRepository)
+    sendFriendRequest(repository = userRepository, userLogInRepository = userLogInRepository)
 }
 
 fun Routing.findFriends(
@@ -72,6 +76,80 @@ fun Routing.findFriends(
                         )
                     )
                     return@checkDeviceIntegrity
+                }
+            }
+        }
+    }
+}
+
+fun Routing.sendFriendRequest(
+    repository: UserInteractionRepository,
+    userLogInRepository: UserLogInRepository
+) {
+    authenticate("auth-bearer") {
+        post(UserRoutes.AddFriend.path) {
+            checkDeviceIntegrity(
+                userLogInRepository = userLogInRepository
+            ) { authParams ->
+                val body: SendFriendRequestBody = call.receive()
+                if (body.requesterId.isBlank() || body.receiverId.isBlank()) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        createErrorResponse(
+                            code = HttpStatusCode.BadRequest.value,
+                            message = "Bad Request",
+                            details = "Requester ID or Receiver ID is missing."
+                        )
+                    )
+                    return@checkDeviceIntegrity
+                }
+                if (body.requesterId != authParams.userId) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        createErrorResponse(
+                            code = HttpStatusCode.Forbidden.value,
+                            message = "Forbidden",
+                            details = "You are not allowed to send friend requests on behalf of another user."
+                        )
+                    )
+                    return@checkDeviceIntegrity
+                }
+                try {
+                    val isRequestSent = repository.sendFriendRequest(
+                        userId = body.requesterId,
+                        friendId = body.receiverId
+                    )
+                    if (isRequestSent) {
+                        call.respond(HttpStatusCode.Created, "Friend request sent successfully.")
+                    } else {
+                        call.respond(
+                            HttpStatusCode.Conflict,
+                            createErrorResponse(
+                                code = HttpStatusCode.Conflict.value,
+                                message = "Conflict",
+                                details = "Friend request already exists or cannot be sent."
+                            )
+                        )
+                    }
+                } catch (e: ExposedSQLException) {
+                    call.respond(
+                        HttpStatusCode.Conflict,
+                        createErrorResponse(
+                            code = HttpStatusCode.Conflict.value,
+                            message = "Conflict",
+                            details = "Friend request already exists."
+                        )
+                    )
+                } catch (e: Exception) {
+                    println("Error ${e}")
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        createErrorResponse(
+                            code = HttpStatusCode.InternalServerError.value,
+                            message = "Internal Server Error",
+                            details = "An error occurred while sending the friend request: ${e.message}"
+                        )
+                    )
                 }
             }
         }

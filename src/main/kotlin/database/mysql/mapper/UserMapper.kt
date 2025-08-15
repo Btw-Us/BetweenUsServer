@@ -48,8 +48,6 @@ fun rowToFriend(row: ResultRow): Friend {
         requesterId = row[FriendsTable.requesterId],
         receiverId = row[FriendsTable.receiverId],
         status = FriendshipStatus.valueOf(row[FriendsTable.status]),
-        createdAt = row[FriendsTable.createdAt],
-        updatedAt = row[FriendsTable.updatedAt],
         requestedAt = row[FriendsTable.requestedAt],
         respondedAt = row[FriendsTable.respondedAt]
     )

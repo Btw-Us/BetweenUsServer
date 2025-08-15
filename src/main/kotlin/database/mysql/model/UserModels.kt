@@ -10,14 +10,12 @@
 
 package com.aatech.database.mysql.model
 
-import com.aatech.database.mysql.model.FriendsTable.createdAt
 import com.aatech.database.mysql.model.FriendsTable.id
 import com.aatech.database.mysql.model.FriendsTable.receiverId
 import com.aatech.database.mysql.model.FriendsTable.requestedAt
 import com.aatech.database.mysql.model.FriendsTable.requesterId
 import com.aatech.database.mysql.model.FriendsTable.respondedAt
 import com.aatech.database.mysql.model.FriendsTable.status
-import com.aatech.database.mysql.model.FriendsTable.updatedAt
 import com.aatech.database.mysql.model.UserDevicesTable.deviceId
 import com.aatech.database.mysql.model.UserDevicesTable.deviceName
 import com.aatech.database.mysql.model.UserDevicesTable.devicePublicKey
@@ -323,10 +321,8 @@ object FriendsTable : Table("friends_db") {
     val status = varchar("status", 30).default(FriendshipStatus.PENDING.name)
     val requestedAt = long("requested_at").default(System.currentTimeMillis())
     val respondedAt = long("responded_at").nullable()
-    val createdAt = long("created_at").default(System.currentTimeMillis())
-    val updatedAt = long("updated_at").nullable()
 
-    override val primaryKey: PrimaryKey?
+    override val primaryKey: PrimaryKey
         get() = PrimaryKey(id, name = "pk_friend_id")
 
     init {
