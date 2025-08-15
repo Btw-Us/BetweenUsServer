@@ -19,15 +19,11 @@ import com.aatech.database.mysql.mapper.rowToUser
 import com.aatech.database.mysql.model.FriendsTable
 import com.aatech.database.mysql.model.FriendshipStatus
 import com.aatech.database.mysql.model.UserTable
-import com.aatech.database.mysql.model.entity.User
+import com.aatech.database.mysql.model.entity.SearchUserResponse
 import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.v1.core.alias
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.leftJoin
-import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
@@ -35,7 +31,7 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
     override suspend fun findFriends(
         loggedUserId: String,
         userName: String
-    ): List<User> = withContext(Dispatchers.IO) {
+    ): List<SearchUserResponse> = withContext(Dispatchers.IO) {
         transaction {
             val friendsAsRequester = FriendsTable.alias("friends_as_requester")
             val friendsAsReceiver = FriendsTable.alias("friends_as_receiver")
@@ -61,14 +57,12 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
                 .where {
                     (UserTable.username like "%$userName%") and
                             (UserTable.uuid neq loggedUserId) and
-                            // User is not already friends (neither as requester nor receiver)
                             (
                                     (friendsAsRequester[FriendsTable.status].isNull() or
                                             (friendsAsRequester[FriendsTable.status] neq FriendshipStatus.ACCEPTED.name)) and
                                             (friendsAsReceiver[FriendsTable.status].isNull() or
                                                     (friendsAsReceiver[FriendsTable.status] neq FriendshipStatus.ACCEPTED.name))
                                     ) and
-                            // User is not blocked (neither as requester nor receiver)
                             (
                                     (friendsAsRequester[FriendsTable.status].isNull() or
                                             (friendsAsRequester[FriendsTable.status] neq FriendshipStatus.BLOCKED.name)) and
@@ -76,11 +70,34 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
                                                     (friendsAsReceiver[FriendsTable.status] neq FriendshipStatus.BLOCKED.name))
                                     )
                 }
-                .map(::rowToUser)
+                .map {
+                    rowToUserAndFriend(
+                        it,
+                        friendsAsRequester,
+                        friendsAsReceiver
+                    )
+                }
         }
     }
 
     override fun sendFriendRequest(userId: String, friendId: String): Boolean {
         TODO("Not yet implemented")
+    }
+
+
+    fun rowToUserAndFriend(
+        row: ResultRow,
+        friendsAsRequester: Alias<FriendsTable>,
+        friendsAsReceiver: Alias<FriendsTable>
+    ): SearchUserResponse {
+        val user = rowToUser(row)
+        val requesterStatus = row.getOrNull(friendsAsRequester[FriendsTable.status])?.let {
+            FriendshipStatus.valueOf(it)
+        }
+        val receiverStatus = row.getOrNull(friendsAsReceiver[FriendsTable.status])?.let {
+            FriendshipStatus.valueOf(it)
+        }
+        val friendshipStatus = requesterStatus ?: receiverStatus
+        return SearchUserResponse(user, friendshipStatus)
     }
 }
