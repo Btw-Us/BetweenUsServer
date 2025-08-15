@@ -30,6 +30,7 @@ sealed class LoginRoutes(val path: String) {
     object CheckPassword : LoginRoutes("${LogInWithOAuth.path}/check-password")
     object LogOut : LoginRoutes("$USER/logout")
 }
+
 sealed class UserRoutes(val path: String) {
     object GetUserProfile : UserRoutes("$USER/profile")
     object UpdateUserProfile : UserRoutes("$USER/profile/update")
@@ -39,6 +40,8 @@ sealed class UserRoutes(val path: String) {
     object UpdateUserStatus : UserRoutes("$USER/status/update")
     object FindFriends : UserRoutes("$USER/find-friends")
     object GetFriendsList : UserRoutes("$USER/friends")
-    object AddFriend : UserRoutes("$USER/friends/add")
+    object AddOrRemoveFriendRequest : UserRoutes("$USER/friends/addOrRemoveRequest")
+    object GetAllReceivedRequests : UserRoutes("$USER/friends/received-requests")
+    object GetAllSentRequests : UserRoutes("$USER/friends/sent-requests")
     object RemoveFriend : UserRoutes("$USER/friends/remove")
 }

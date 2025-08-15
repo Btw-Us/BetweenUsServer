@@ -20,12 +20,12 @@ import com.aatech.database.mysql.model.FriendsTable
 import com.aatech.database.mysql.model.FriendshipStatus
 import com.aatech.database.mysql.model.UserTable
 import com.aatech.database.mysql.model.entity.SearchUserResponse
+import com.aatech.database.mysql.model.entity.User
 import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -39,19 +39,7 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
             val friendsAsRequester = FriendsTable.alias("friends_as_requester")
             val friendsAsReceiver = FriendsTable.alias("friends_as_receiver")
 
-            UserTable.leftJoin(
-                friendsAsRequester,
-                { UserTable.uuid },
-                { friendsAsRequester[FriendsTable.requesterId] },
-                additionalConstraint = {
-                    friendsAsRequester[FriendsTable.receiverId] eq loggedUserId
-                }).leftJoin(
-                friendsAsReceiver,
-                { UserTable.uuid },
-                { friendsAsReceiver[FriendsTable.receiverId] },
-                additionalConstraint = {
-                    friendsAsReceiver[FriendsTable.requesterId] eq loggedUserId
-                }).selectAll().where {
+            joinUserAndFriendsTable(friendsAsRequester, loggedUserId, friendsAsReceiver).selectAll().where {
                 (UserTable.username like "%$userName%") and (UserTable.uuid neq loggedUserId) and ((friendsAsRequester[FriendsTable.status].isNull() or (friendsAsRequester[FriendsTable.status] neq FriendshipStatus.ACCEPTED.name)) and (friendsAsReceiver[FriendsTable.status].isNull() or (friendsAsReceiver[FriendsTable.status] neq FriendshipStatus.ACCEPTED.name))) and ((friendsAsRequester[FriendsTable.status].isNull() or (friendsAsRequester[FriendsTable.status] neq FriendshipStatus.BLOCKED.name)) and (friendsAsReceiver[FriendsTable.status].isNull() or (friendsAsReceiver[FriendsTable.status] neq FriendshipStatus.BLOCKED.name)))
             }.map {
                 rowToUserAndFriend(
@@ -99,6 +87,79 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
                 }
             }
         }
+
+    override suspend fun getAllFriends(userId: String): List<User> {
+        return withContext(Dispatchers.IO) {
+            transaction {
+                val friendsAsRequester = FriendsTable.alias("friends_as_requester")
+                val friendsAsReceiver = FriendsTable.alias("friends_as_receiver")
+
+                joinUserAndFriendsTable(friendsAsRequester, userId, friendsAsReceiver)
+                    .selectAll()
+                    .where {
+                        (friendsAsRequester[FriendsTable.status] eq FriendshipStatus.ACCEPTED.name) or
+                                (friendsAsReceiver[FriendsTable.status] eq FriendshipStatus.ACCEPTED.name)
+                    }.map(::rowToUser)
+            }
+        }
+    }
+
+    private fun joinUserAndFriendsTable(
+        friendsAsRequester: Alias<FriendsTable>,
+        userId: String,
+        friendsAsReceiver: Alias<FriendsTable>
+    ): Join = UserTable.leftJoin(
+        friendsAsRequester,
+        { UserTable.uuid },
+        { friendsAsRequester[FriendsTable.requesterId] },
+        additionalConstraint = {
+            friendsAsRequester[FriendsTable.receiverId] eq userId
+        }).leftJoin(
+        friendsAsReceiver,
+        { UserTable.uuid },
+        { friendsAsReceiver[FriendsTable.receiverId] },
+        additionalConstraint = {
+            friendsAsReceiver[FriendsTable.requesterId] eq userId
+        })
+
+    override suspend fun getAllReceivedRequests(userId: String): List<SearchUserResponse> =
+        withContext(Dispatchers.IO) {
+            transaction {
+                val friendsAsReceiver = FriendsTable.alias("friends_as_receiver")
+                UserTable.leftJoin(
+                    friendsAsReceiver,
+                    { UserTable.uuid },
+                    { friendsAsReceiver[FriendsTable.requesterId] },
+                    additionalConstraint = {
+                        friendsAsReceiver[FriendsTable.receiverId] eq userId
+                    }
+                ).selectAll().where {
+                    (friendsAsReceiver[FriendsTable.status] eq FriendshipStatus.PENDING.name) and (UserTable.uuid neq userId)
+                }.map {
+                    rowToUserAndFriend(it, FriendsTable.alias("friends_as_requester"), friendsAsReceiver)
+                }
+            }
+        }
+
+    override suspend fun getAllSentRequests(userId: String): List<SearchUserResponse> {
+        return withContext(Dispatchers.IO) {
+            transaction {
+                val friendsAsRequester = FriendsTable.alias("friends_as_requester")
+                UserTable.leftJoin(
+                    friendsAsRequester,
+                    { UserTable.uuid },
+                    { friendsAsRequester[FriendsTable.receiverId] },
+                    additionalConstraint = {
+                        friendsAsRequester[FriendsTable.requesterId] eq userId
+                    }
+                ).selectAll().where {
+                    (friendsAsRequester[FriendsTable.status] eq FriendshipStatus.PENDING.name) and (UserTable.uuid neq userId)
+                }.map {
+                    rowToUserAndFriend(it, friendsAsRequester, FriendsTable.alias("friends_as_receiver"))
+                }
+            }
+        }
+    }
 
 
     fun rowToUserAndFriend(

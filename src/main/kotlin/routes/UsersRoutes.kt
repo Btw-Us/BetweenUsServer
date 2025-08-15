@@ -33,7 +33,10 @@ fun Routing.allUsersRoutes() {
     val userRepository = MySqlModule().provideUserInteractionRepository()
     val userLogInRepository = MySqlModule().provideUserLogInRepository()
     findFriends(repository = userRepository, userLogInRepository = userLogInRepository)
+    getAllFriends(repository = userRepository, userLogInRepository = userLogInRepository)
     sendFriendRequest(repository = userRepository, userLogInRepository = userLogInRepository)
+    getAllReceivedRequests(repository = userRepository, userLogInRepository = userLogInRepository)
+    getAllSentRequests(repository = userRepository, userLogInRepository = userLogInRepository)
 }
 
 fun Routing.findFriends(
@@ -87,7 +90,7 @@ fun Routing.sendFriendRequest(
     userLogInRepository: UserLogInRepository
 ) {
     authenticate("auth-bearer") {
-        post(UserRoutes.AddFriend.path) {
+        post(UserRoutes.AddOrRemoveFriendRequest.path) {
             checkDeviceIntegrity(
                 userLogInRepository = userLogInRepository
             ) { authParams ->
@@ -134,13 +137,100 @@ fun Routing.sendFriendRequest(
                         )
                     )
                 } catch (e: Exception) {
-                    println("Error ${e}")
                     call.respond(
                         HttpStatusCode.InternalServerError,
                         createErrorResponse(
                             code = HttpStatusCode.InternalServerError.value,
                             message = "Internal Server Error",
                             details = "An error occurred while sending the friend request: ${e.message}"
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+fun Routing.getAllFriends(
+    repository: UserInteractionRepository,
+    userLogInRepository: UserLogInRepository
+) {
+    authenticate("auth-bearer") {
+        get(UserRoutes.GetFriendsList.path) {
+            checkDeviceIntegrity(
+                userLogInRepository = userLogInRepository
+            ) { authParams ->
+                try {
+                    val friends = repository.getAllFriends(
+                        userId = authParams.userId ?: throw IllegalArgumentException("User ID is required")
+                    )
+                    call.respond(HttpStatusCode.OK, friends)
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        createErrorResponse(
+                            code = HttpStatusCode.InternalServerError.value,
+                            message = "Internal Server Error",
+                            details = "An error occurred while fetching friends list: ${e.message}"
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+fun Routing.getAllReceivedRequests(
+    repository: UserInteractionRepository,
+    userLogInRepository: UserLogInRepository
+) {
+    authenticate("auth-bearer") {
+        get(UserRoutes.GetAllReceivedRequests.path) {
+            checkDeviceIntegrity(
+                userLogInRepository = userLogInRepository
+            ) { authParams ->
+                try {
+                    val requests = repository.getAllReceivedRequests(
+                        userId = authParams.userId ?: throw IllegalArgumentException("User ID is required")
+                    )
+                    call.respond(HttpStatusCode.OK, requests)
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        createErrorResponse(
+                            code = HttpStatusCode.InternalServerError.value,
+                            message = "Internal Server Error",
+                            details = "An error occurred while fetching received requests: ${e.message}"
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+fun Routing.getAllSentRequests(
+    repository: UserInteractionRepository,
+    userLogInRepository: UserLogInRepository
+) {
+    authenticate("auth-bearer") {
+        get(UserRoutes.GetAllSentRequests.path) {
+            checkDeviceIntegrity(
+                userLogInRepository = userLogInRepository
+            ) { authParams ->
+                try {
+                    val requests = repository.getAllSentRequests(
+                        userId = authParams.userId ?: throw IllegalArgumentException("User ID is required")
+                    )
+                    call.respond(HttpStatusCode.OK, requests)
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        createErrorResponse(
+                            code = HttpStatusCode.InternalServerError.value,
+                            message = "Internal Server Error",
+                            details = "An error occurred while fetching sent requests: ${e.message}"
                         )
                     )
                 }
