@@ -23,8 +23,13 @@ interface UserInteractionRepository {
         userName: String,
     ): List<SearchUserResponse>
 
-    suspend fun sendFriendRequest(
+    suspend fun sendOrUnsendFriendRequest(
         userId: String,
         friendId: String,
-    ): Boolean
+    ): FriendshipAction
+
+    enum class FriendshipAction {
+        SEND,
+        UNSEND
+    }
 }

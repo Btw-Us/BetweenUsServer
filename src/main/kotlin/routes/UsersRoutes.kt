@@ -115,22 +115,15 @@ fun Routing.sendFriendRequest(
                     return@checkDeviceIntegrity
                 }
                 try {
-                    val isRequestSent = repository.sendFriendRequest(
+                    val isRequestSent = repository.sendOrUnsendFriendRequest(
                         userId = body.requesterId,
                         friendId = body.receiverId
                     )
-                    if (isRequestSent) {
-                        call.respond(HttpStatusCode.Created, "Friend request sent successfully.")
-                    } else {
-                        call.respond(
-                            HttpStatusCode.Conflict,
-                            createErrorResponse(
-                                code = HttpStatusCode.Conflict.value,
-                                message = "Conflict",
-                                details = "Friend request already exists or cannot be sent."
-                            )
-                        )
+                    val message = when (isRequestSent) {
+                        UserInteractionRepository.FriendshipAction.SEND -> "Friend request sent successfully."
+                        UserInteractionRepository.FriendshipAction.UNSEND -> "Friend request unsent successfully."
                     }
+                    call.respond(HttpStatusCode.Created, message)
                 } catch (e: ExposedSQLException) {
                     call.respond(
                         HttpStatusCode.Conflict,
