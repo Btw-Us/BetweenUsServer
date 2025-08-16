@@ -42,7 +42,7 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
             val friendsAsRequester = FriendsRequestTable.alias("friends_as_requester")
             val friendsAsReceiver = FriendsRequestTable.alias("friends_as_receiver")
 
-            joinUserAndFriendsTable(friendsAsRequester, loggedUserId, friendsAsReceiver).selectAll().where {
+            joinUserAndFriendsRequestTable(friendsAsRequester, loggedUserId, friendsAsReceiver).selectAll().where {
                 (UserTable.username like "%$userName%") and (UserTable.uuid neq loggedUserId) and
                         ((friendsAsRequester[FriendsRequestTable.status].isNull()
                                 or (friendsAsRequester[FriendsRequestTable.status] neq FriendshipRequestStatus.ACCEPTED.name))
@@ -104,20 +104,39 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
     override suspend fun getAllFriends(userId: String): List<User> {
         return withContext(Dispatchers.IO) {
             transaction {
-                val friendsAsRequester = FriendsRequestTable.alias("friends_as_requester")
-                val friendsAsReceiver = FriendsRequestTable.alias("friends_as_receiver")
+                val friendsAsRequester = UserFriendsTable.alias("friends_as_user")
+                val friendsAsReceiver = UserFriendsTable.alias("friends_as_friend")
 
                 joinUserAndFriendsTable(friendsAsRequester, userId, friendsAsReceiver)
                     .selectAll()
                     .where {
-                        (friendsAsRequester[FriendsRequestTable.status] eq FriendshipRequestStatus.ACCEPTED.name) or
-                                (friendsAsReceiver[FriendsRequestTable.status] eq FriendshipRequestStatus.ACCEPTED.name)
+                        (friendsAsRequester[UserFriendsTable.friendshipRequestStatus] eq FriendshipRequestStatus.ACCEPTED.name) or
+                                (friendsAsReceiver[UserFriendsTable.friendshipRequestStatus] eq FriendshipRequestStatus.ACCEPTED.name)
                     }.map(::rowToUser)
             }
         }
     }
 
     private fun joinUserAndFriendsTable(
+        friendsAsRequester: Alias<UserFriendsTable>,
+        userId: String,
+        friendsAsReceiver: Alias<UserFriendsTable>
+    ): Join = UserTable.leftJoin(
+        friendsAsRequester,
+        { UserTable.uuid },
+        { friendsAsRequester[UserFriendsTable.userId] },
+        additionalConstraint = {
+            friendsAsRequester[UserFriendsTable.friendId] eq userId
+        }).leftJoin(
+        friendsAsReceiver,
+        { UserTable.uuid },
+        { friendsAsReceiver[UserFriendsTable.friendId] },
+        additionalConstraint = {
+            friendsAsReceiver[UserFriendsTable.userId] eq userId
+        }
+    )
+
+    private fun joinUserAndFriendsRequestTable(
         friendsAsRequester: Alias<FriendsRequestTable>,
         userId: String,
         friendsAsReceiver: Alias<FriendsRequestTable>
@@ -198,7 +217,7 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
             if (reqEntity == null) {
                 throw Exception("Friend request not found")
             }
-            if (reqEntity.status == FriendshipRequestStatus.PENDING) {
+            if (reqEntity.status != FriendshipRequestStatus.PENDING) {
                 throw Exception("Friend request is still pending")
             }
             if (reqEntity.receiverId != userId) {
@@ -231,6 +250,7 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
                 it[respondedAt] = System.currentTimeMillis()
             }
             UserFriendsTable.insert {
+                it[id] = userId + friendId
                 it[UserFriendsTable.userId] = reqEntity.requesterId
                 it[UserFriendsTable.friendId] = reqEntity.receiverId
                 it[UserFriendsTable.friendshipRequestStatus] = requestStatus.name

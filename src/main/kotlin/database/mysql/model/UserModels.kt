@@ -344,7 +344,6 @@ object FriendsRequestTable : Table("friends_request_db") {
 
 object UserFriendsTable : Table("user_friends") {
     val id = varchar("pk_friendship_id", 255)
-        .uniqueIndex() // Unique identifier for the friendship record
     val userId = varchar("pk_user_id", 255).references(
         UserTable.uuid,
         onDelete = ReferenceOption.CASCADE,
