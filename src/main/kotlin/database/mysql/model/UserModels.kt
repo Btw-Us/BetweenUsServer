@@ -370,12 +370,7 @@ object UserFriendsTable : Table("user_friends") {
         get() = PrimaryKey(id, name = "pk_user_friends_id")
 
     init {
-        index("idx_user_id", true, userId)
-        index("idx_friend_id", true, friendId)
         index("idx_chat_room_path", false, chatRoomPath)
-        index("idx_last_message", false, lastMessage)
-        index("idx_last_message_at", false, lastMessageAt)
-
         // Unique index to prevent duplicate friendships
         uniqueIndex("idx_unique_friendship", userId, friendId)
         // Composite index for common queries
