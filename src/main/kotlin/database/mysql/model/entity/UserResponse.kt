@@ -15,12 +15,12 @@
 
 package com.aatech.database.mysql.model.entity
 
-import com.aatech.database.mysql.model.FriendshipStatus
+import com.aatech.database.mysql.model.FriendshipRequestStatus
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class SearchUserResponse(
     val user: User,
-    val friendshipStatus: FriendshipStatus? = null,
+    val friendshipRequestStatus: FriendshipRequestStatus? = null,
     val isLoggedUserCreatedReq: Boolean? = null,
 )

@@ -10,12 +10,12 @@
 
 package com.aatech.database.mysql.model
 
-import com.aatech.database.mysql.model.FriendsTable.id
-import com.aatech.database.mysql.model.FriendsTable.receiverId
-import com.aatech.database.mysql.model.FriendsTable.requestedAt
-import com.aatech.database.mysql.model.FriendsTable.requesterId
-import com.aatech.database.mysql.model.FriendsTable.respondedAt
-import com.aatech.database.mysql.model.FriendsTable.status
+import com.aatech.database.mysql.model.FriendsRequestTable.id
+import com.aatech.database.mysql.model.FriendsRequestTable.receiverId
+import com.aatech.database.mysql.model.FriendsRequestTable.requestedAt
+import com.aatech.database.mysql.model.FriendsRequestTable.requesterId
+import com.aatech.database.mysql.model.FriendsRequestTable.respondedAt
+import com.aatech.database.mysql.model.FriendsRequestTable.status
 import com.aatech.database.mysql.model.UserDevicesTable.deviceId
 import com.aatech.database.mysql.model.UserDevicesTable.deviceName
 import com.aatech.database.mysql.model.UserDevicesTable.devicePublicKey
@@ -195,7 +195,7 @@ object UserStatusTable : Table("user_status") {
     val status = varchar("status", 255).default(ActiveStatus.OFFLINE.name)
     val lastUpdated = long("last_updated").default(System.currentTimeMillis())
 
-    override val primaryKey: PrimaryKey?
+    override val primaryKey: PrimaryKey
         get() = PrimaryKey(userId, name = "pk_user_status")
 
     init {
@@ -269,12 +269,11 @@ object UserDevicesTable : Table("user_logged_in_devices") {
  * - BLOCKED: One user has blocked the other, preventing further interaction.
  * - CANCELLED: The friend request was cancelled by the requester before a response was received.
  */
-enum class FriendshipStatus {
+enum class FriendshipRequestStatus {
     PENDING,
     ACCEPTED,
     DECLINED,
-    BLOCKED,
-    CANCELLED
+    BLOCKED
 }
 
 /**
@@ -303,10 +302,10 @@ enum class FriendshipStatus {
  * @property createdAt The timestamp when the friendship record was created, defaulting to the current time.
  * @property updatedAt The timestamp when the friendship record was last updated, nullable.
  * @see UserTable The table storing user information, which this table references.
- * @see FriendshipStatus The enum representing the possible statuses of a friendship.
+ * @see FriendshipRequestStatus The enum representing the possible statuses of a friendship.
  *
  */
-object FriendsTable : Table("friends_db") {
+object FriendsRequestTable : Table("friends_request_db") {
     val id = varchar("pk_friend_id", 255)
     val requesterId = varchar("requester_id", 255).references(
         uuid,
@@ -318,12 +317,12 @@ object FriendsTable : Table("friends_db") {
         onDelete = ReferenceOption.CASCADE,
         onUpdate = ReferenceOption.CASCADE
     )
-    val status = varchar("status", 30).default(FriendshipStatus.PENDING.name)
+    val status = varchar("status", 30).default(FriendshipRequestStatus.PENDING.name)
     val requestedAt = long("requested_at").default(System.currentTimeMillis())
     val respondedAt = long("responded_at").nullable()
 
     override val primaryKey: PrimaryKey
-        get() = PrimaryKey(id, name = "pk_friend_id")
+        get() = PrimaryKey(id, name = "pk_request_friend_id")
 
     init {
         // Prevent duplicate friend requests (both directions)
@@ -339,6 +338,51 @@ object FriendsTable : Table("friends_db") {
         index("idx_requester_status", false, requesterId, status)
         index("idx_receiver_status", false, receiverId, status)
 
+    }
+}
+
+
+object UserFriendsTable : Table("user_friends") {
+    val id = varchar("pk_friendship_id", 255)
+        .uniqueIndex() // Unique identifier for the friendship record
+    val userId = varchar("pk_user_id", 255).references(
+        UserTable.uuid,
+        onDelete = ReferenceOption.CASCADE,
+        onUpdate = ReferenceOption.CASCADE
+    )
+    val friendId = varchar("friend_id", 255).references(
+        UserTable.uuid,
+        onDelete = ReferenceOption.CASCADE,
+        onUpdate = ReferenceOption.CASCADE
+    )
+    val createdAt = long("created_at").default(System.currentTimeMillis())
+    val chatRoomPath = varchar("chat_room_path", 255)
+        .nullable()
+        .default(null)
+    val friendshipRequestStatus = varchar("friendship_status", 30)
+        .default(FriendshipRequestStatus.PENDING.name)
+    val isMuted = bool("is_muted").default(false)
+    val isFavorite = bool("is_favorite").default(false)
+    val lastMessage = varchar("last_message", 255).nullable().default(null)
+    val lastMessageAt = long("last_message_at").nullable().default(null)
+
+
+    override val primaryKey: PrimaryKey
+        get() = PrimaryKey(id, name = "pk_user_friends_id")
+
+    init {
+        index("idx_user_id", true, userId)
+        index("idx_friend_id", true, friendId)
+        index("idx_chat_room_path", false, chatRoomPath)
+        index("idx_last_message", false, lastMessage)
+        index("idx_last_message_at", false, lastMessageAt)
+
+        // Unique index to prevent duplicate friendships
+        uniqueIndex("idx_unique_friendship", userId, friendId)
+        // Composite index for common queries
+        index("idx_user_friend", false, userId, friendId)
+        index("idx_user_friend_status", false, userId, friendshipRequestStatus, isMuted, isFavorite)
+        index("idx_friend_status", false, friendId, friendshipRequestStatus, isMuted, isFavorite)
     }
 }
 

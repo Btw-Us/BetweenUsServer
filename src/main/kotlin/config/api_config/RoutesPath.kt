@@ -43,5 +43,6 @@ sealed class UserRoutes(val path: String) {
     object AddOrRemoveFriendRequest : UserRoutes("$USER/friends/addOrRemoveRequest")
     object GetAllReceivedRequests : UserRoutes("$USER/friends/received-requests")
     object GetAllSentRequests : UserRoutes("$USER/friends/sent-requests")
+    object RespondToFriendRequest : UserRoutes("$USER/friends/respond")
     object RemoveFriend : UserRoutes("$USER/friends/remove")
 }

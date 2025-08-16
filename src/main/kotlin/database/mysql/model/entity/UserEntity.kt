@@ -1,7 +1,7 @@
 package com.aatech.database.mysql.model.entity
 
 import com.aatech.database.mysql.model.ActiveStatus
-import com.aatech.database.mysql.model.FriendshipStatus
+import com.aatech.database.mysql.model.FriendshipRequestStatus
 import com.aatech.database.mysql.model.PrivacyVisibility
 import com.aatech.utils.generateUuidFromSub
 import kotlinx.serialization.Serializable
@@ -90,13 +90,28 @@ data class UserDevice(
 
 
 @Serializable
-data class Friend(
+data class FriendRequest(
     val id: String, // UUID for unique friendship record
     val requesterId: String,
     val receiverId: String,
-    val status: FriendshipStatus = FriendshipStatus.PENDING,
+    val status: FriendshipRequestStatus = FriendshipRequestStatus.PENDING,
     val requestedAt: Long = System.currentTimeMillis(),
     val respondedAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long? = null
 )
+
+@Serializable
+data class UserFriends(
+    val id: String,
+    val userId: String,
+    val friendId: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    val chatRoomPath: String? = null,
+    val friendshipRequestStatus: FriendshipRequestStatus = FriendshipRequestStatus.PENDING,
+    val isMuted: Boolean = false,
+    val isFavorite: Boolean = false,
+    val lastMessage: String? = null,
+    val lastMessageAt: Long? = null
+)
+

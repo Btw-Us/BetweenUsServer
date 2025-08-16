@@ -20,8 +20,8 @@ import com.aatech.database.mysql.model.*
 import com.aatech.database.mysql.model.entity.*
 import org.jetbrains.exposed.v1.core.ResultRow
 
-fun rowToUser(row: ResultRow): User {
-    return User(
+fun rowToUser(row: ResultRow): User =
+    User(
         uuid = row[UserTable.uuid],
         username = row[UserTable.username],
         fullName = row[UserTable.fullName] ?: "No Name",
@@ -32,43 +32,55 @@ fun rowToUser(row: ResultRow): User {
         lastLogin = row[UserTable.lastLogin],
         isProfileActive = row[UserTable.isProfileActive],
     )
-}
 
-fun rowToUserPassword(row: ResultRow): UserPassword {
-    return UserPassword(
+
+fun rowToUserPassword(row: ResultRow): UserPassword =
+    UserPassword(
         userId = row[UserPasswordTable.userId],
         passwordHash = row[UserPasswordTable.passwordHash],
         lastPasswordChange = row[UserPasswordTable.lastPasswordChange]
     )
-}
 
-fun rowToFriend(row: ResultRow): Friend {
-    return Friend(
-        id = row[FriendsTable.id],
-        requesterId = row[FriendsTable.requesterId],
-        receiverId = row[FriendsTable.receiverId],
-        status = FriendshipStatus.valueOf(row[FriendsTable.status]),
-        requestedAt = row[FriendsTable.requestedAt],
-        respondedAt = row[FriendsTable.respondedAt]
+
+fun rowToFriendRequest(row: ResultRow): FriendRequest =
+    FriendRequest(
+        id = row[FriendsRequestTable.id],
+        requesterId = row[FriendsRequestTable.requesterId],
+        receiverId = row[FriendsRequestTable.receiverId],
+        status = FriendshipRequestStatus.valueOf(row[FriendsRequestTable.status]),
+        requestedAt = row[FriendsRequestTable.requestedAt],
+        respondedAt = row[FriendsRequestTable.respondedAt]
     )
-}
 
 
-fun rowToUserPrivacySettings(row: ResultRow): UserPrivacySettings {
-    return UserPrivacySettings(
-        userId = row[UserPrivacySettingsTable.userId],
-        allowProfilePicture = PrivacyVisibility.valueOf(row[UserPrivacySettingsTable.allowProfilePicture]),
-        allowLastSeen = PrivacyVisibility.valueOf(row[UserPrivacySettingsTable.allowLastSeen]),
-        allowReadReceipts = row[UserPrivacySettingsTable.allowReadReceipts]
-    )
-}
+fun rowToUserPrivacySettings(row: ResultRow): UserPrivacySettings = UserPrivacySettings(
+    userId = row[UserPrivacySettingsTable.userId],
+    allowProfilePicture = PrivacyVisibility.valueOf(row[UserPrivacySettingsTable.allowProfilePicture]),
+    allowLastSeen = PrivacyVisibility.valueOf(row[UserPrivacySettingsTable.allowLastSeen]),
+    allowReadReceipts = row[UserPrivacySettingsTable.allowReadReceipts]
+)
 
-fun rowToUserStatus(row: ResultRow): UserStatus {
-    return UserStatus(
+
+fun rowToUserStatus(row: ResultRow): UserStatus =
+    UserStatus(
         userId = row[UserStatusTable.userId],
         status = row[UserStatusTable.status],
         lastUpdated = row[UserStatusTable.lastUpdated]
     )
-}
+
+
+fun rowToUserFriends(row: ResultRow): UserFriends =
+    UserFriends(
+        userId = row[UserFriendsTable.userId],
+        friendId = row[UserFriendsTable.friendId],
+        createdAt = row[UserFriendsTable.createdAt],
+        chatRoomPath = row[UserFriendsTable.chatRoomPath],
+        friendshipRequestStatus = FriendshipRequestStatus.valueOf(row[UserFriendsTable.friendshipRequestStatus]),
+        isMuted = row[UserFriendsTable.isMuted],
+        isFavorite = row[UserFriendsTable.isFavorite],
+        lastMessage = row[UserFriendsTable.lastMessage],
+        lastMessageAt = row[UserFriendsTable.lastMessageAt],
+        id = row[UserFriendsTable.id]
+    )
 
 

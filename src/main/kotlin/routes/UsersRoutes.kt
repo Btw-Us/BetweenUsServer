@@ -19,6 +19,7 @@ import com.aatech.config.api_config.UserRoutes
 import com.aatech.config.api_config.checkDeviceIntegrity
 import com.aatech.config.response.createErrorResponse
 import com.aatech.dagger.modules.MySqlModule
+import com.aatech.database.mysql.model.entity.ChangeFriendRequestStatusBody
 import com.aatech.database.mysql.model.entity.SendFriendRequestBody
 import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import com.aatech.database.mysql.repository.user.UserLogInRepository
@@ -37,6 +38,7 @@ fun Routing.allUsersRoutes() {
     sendFriendRequest(repository = userRepository, userLogInRepository = userLogInRepository)
     getAllReceivedRequests(repository = userRepository, userLogInRepository = userLogInRepository)
     getAllSentRequests(repository = userRepository, userLogInRepository = userLogInRepository)
+    respondToFriendRequest(repository = userRepository, userLogInRepository = userLogInRepository)
 }
 
 fun Routing.findFriends(
@@ -231,6 +233,60 @@ fun Routing.getAllSentRequests(
                             code = HttpStatusCode.InternalServerError.value,
                             message = "Internal Server Error",
                             details = "An error occurred while fetching sent requests: ${e.message}"
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+fun Routing.respondToFriendRequest(
+    repository: UserInteractionRepository,
+    userLogInRepository: UserLogInRepository
+) {
+    authenticate("auth-bearer") {
+        post(UserRoutes.RespondToFriendRequest.path) {
+            checkDeviceIntegrity(
+                userLogInRepository = userLogInRepository
+            ) { authParams ->
+                val body = call.receive<ChangeFriendRequestStatusBody>()
+                if (body.userId.isBlank() || body.friendId.isBlank()) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        createErrorResponse(
+                            code = HttpStatusCode.BadRequest.value,
+                            message = "Bad Request",
+                            details = "Requester ID or Receiver ID is missing."
+                        )
+                    )
+                    return@checkDeviceIntegrity
+                }
+                if (body.userId != authParams.userId) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        createErrorResponse(
+                            code = HttpStatusCode.Forbidden.value,
+                            message = "Forbidden",
+                            details = "You are not allowed to respond to friend requests on behalf of another user."
+                        )
+                    )
+                    return@checkDeviceIntegrity
+                }
+                try {
+                    val responseMessage = repository.responseToFriendRequest(
+                        userId = body.userId,
+                        friendId = body.friendId,
+                        requestStatus = body.requestStatus
+                    )
+                    call.respond(HttpStatusCode.OK, responseMessage)
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        createErrorResponse(
+                            code = HttpStatusCode.InternalServerError.value,
+                            message = "Internal Server Error",
+                            details = "An error occurred while responding to the friend request: ${e.message}"
                         )
                     )
                 }

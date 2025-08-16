@@ -42,8 +42,9 @@ fun databaseConfiguration(database: Database) {
             UserDevicesTable,
             UserPrivacySettingsTable,
             UserStatusTable,
-            FriendsTable,
-            UserPasswordTable
+            FriendsRequestTable,
+            UserPasswordTable,
+            UserFriendsTable
         )
 
         migrationStatements.forEach { statement ->
