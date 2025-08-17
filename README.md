@@ -9,28 +9,28 @@
 
 ⚠️ **Warning:** This project is currently under active development. Features may be incomplete or unstable.
 
------
+---
 
 ## Technology Stack
 
-* **Framework**: [Ktor](https://ktor.io/) - A modern and asynchronous web framework for Kotlin.
+* **Framework**: [Ktor](https://ktor.io/) – Modern asynchronous Kotlin framework
 * **Databases**:
-    * **MySQL**: Used for storing structured, relational data such as user accounts, authentication details, and other metadata.
-    * **MongoDB**: Employed as a replica set for flexible, unstructured data like chat messages and threads, ensuring high availability and scalability.
-* **Dependency Injection**: [Dagger](https://dagger.dev/) - A compile-time dependency injection framework.
-* **SQL Library**: [Exposed](https://github.com/JetBrains/Exposed) - A lightweight SQL library for Kotlin.
-* **Environment Variables**: [Dotenv](https://github.com/cdimascio/dotenv-kotlin) - A library for loading environment variables.
-* **Authentication**:
-    * **JWT (JSON Web Tokens)**: For secure and stateless authentication.
-    * **OAuth**: Integrated with Google for social login capabilities.
-* **Serialization**: [Kotlinx Serialization](https://github.com/Kotlin/kotlinx.serialization) - For converting Kotlin objects to and from JSON.
-* **Logging**: [Logback](http://logback.qos.ch/) - A robust and flexible logging framework.
 
------
+    * **MySQL** – Structured relational data (users, auth, metadata)
+    * **MongoDB Replica Set** – Flexible, unstructured chat data with HA & scalability
+* **Dependency Injection**: [Dagger](https://dagger.dev/)
+* **SQL Library**: [Exposed](https://github.com/JetBrains/Exposed)
+* **Serialization**: [Kotlinx Serialization](https://github.com/Kotlin/kotlinx.serialization)
+* **Authentication**:
+
+    * **JWT** – Secure, stateless auth
+    * **Google OAuth** – Social login
+* **Environment Variables**: [Dotenv](https://github.com/cdimascio/dotenv-kotlin)
+* **Logging**: [Logback](http://logback.qos.ch/)
+
+---
 
 ## Directory Structure
-
-A brief overview of the project's structure.
 
 ```
 .
@@ -45,24 +45,19 @@ A brief overview of the project's structure.
 └── docker-compose.yml
 ```
 
------
+---
 
 ## Configuration
 
-Setting up the server requires creating a few configuration files that are not included in the repository for security reasons.
+### 1. Environment Variables (`.env`)
 
-### 1\. Environment Variables (`.env` file)
-
-⚠️ **Important**: This file contains sensitive data. It is listed in `.gitignore` and should **never** be committed to version control.
-
-Create a file named `.env` in the project's root directory and populate it with your credentials.
+Sensitive configs are stored here (ignored by git):
 
 ```dotenv
-# --- Server Configuration ---
 SERVER_PORT=8080
 SERVER_HOST=0.0.0.0
 
-# --- MySQL Database ---
+# --- MySQL ---
 MYSQL_USER_NAME=your_mysql_username
 MYSQL_PASSWORD=your_mysql_password
 DATABASE_NAME=your_database_name
@@ -73,8 +68,7 @@ MANGO_DB_USER_NAME=your_mongodb_username
 MANGO_DB_PASSWORD=your_mongodb_password
 MONGO_DB_REPLICA_SET=your_mongo_replica_set_name
 
-
-# --- JWT Authentication ---
+# --- JWT ---
 JWT_SECRET=your_super_secret_jwt_key_that_is_very_long
 JWT_REALM=Access to all routes '/user'
 JWT_EXPIRATION=3600
@@ -84,27 +78,18 @@ GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 ```
 
-### 2\. MongoDB Initialization Script
+---
 
-The `docker-compose` setup uses a script to initialize the MongoDB replica set.
+### 2. MongoDB Replica Initialization Script
 
-1.  Create the directory: `mkdir -p scripts`
-2.  Create a file at `scripts/init-replica-set.sh` and add the following content. This script will use the environment variables from the `.env` file to configure the database.
-
-<!-- end list -->
+`scripts/init-replica-set.sh`
 
 ```bash
 #!/bin/bash
 set -e
-
 echo "Starting replica set initialization"
-until mongosh --host mongo1 --eval "print(\"waited for connection\")"
-do
-    sleep 2
-done
+until mongosh --host mongo1 --eval "print(\"waited for connection\")"; do sleep 2; done
 
-echo "Connection finished"
-echo "Creating replica set"
 mongosh --host mongo1 <<EOF
 rs.initiate({
   _id: "${MONGO_REPLICA_SET_NAME}",
@@ -116,11 +101,7 @@ rs.initiate({
 })
 EOF
 
-echo "Replica set created"
-echo "Waiting for all nodes to be healthy..."
 sleep 20
-
-echo "Creating user..."
 mongosh --host mongo1 <<EOF
 db.getSiblingDB('admin').createUser({
   user: '${MONGO_INITDB_ROOT_USERNAME}',
@@ -128,18 +109,19 @@ db.getSiblingDB('admin').createUser({
   roles: [{ role: 'root', db: 'admin' }]
 })
 EOF
-echo "User created"
-echo "Initialization complete"
 ```
 
-3.  Make the script executable:
-    ```bash
-    chmod +x scripts/init-replica-set.sh
-    ```
+Make it executable:
 
-### 3\. Docker Compose Configuration
+```bash
+chmod +x scripts/init-replica-set.sh
+```
 
-Create a `docker-compose.yml` file in the root directory. This file defines and orchestrates all the services, pulling sensitive values from the `.env` file.
+---
+
+### 3. Docker Compose (`docker-compose.yml`)
+
+Defines and orchestrates all services:
 
 ```yaml
 version: '3.8'
@@ -148,47 +130,80 @@ services:
   app:
     build: .
     ports:
-      - "${SERVER_PORT:-8080}:8080"
+      - "8080:8080"
     depends_on:
       mysql:
         condition: service_healthy
+      mongo1:
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy
+      mongo3:
+        condition: service_healthy
       mongo-setup:
         condition: service_completed_successfully
-    env_file:
-      - .env
     environment:
       - DATABASE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
       - MYSQL_USER_NAME=${MYSQL_USER}
-      - MANGO_DB_USER_NAME=${MONGO_INITDB_ROOT_USERNAME}
-      - MANGO_DB_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - DATABASE_NAME=${MYSQL_DATABASE}
+      - MANGO_DB_USER_NAME=${MONGO_USER}
+      - MANGO_DB_PASSWORD=${MONGO_PASSWORD}
+      - SERVER_PORT=8080
+      - SERVER_HOST=0.0.0.0
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REALM=${JWT_REALM}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     networks:
       - between-us-network
 
   mysql:
     image: mysql:8.0
-    env_file:
-      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./init-scripts/mysql:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PASSWORD}" ]
       timeout: 20s
       retries: 10
+    networks:
+      - between-us-network
+
+  # phpMyAdmin
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: between_us_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+    depends_on:
+      mysql:
+        condition: service_healthy
     networks:
       - between-us-network
 
   mongo1:
     image: mongo:7.0
     container_name: between_us_mongo_1
-    command: mongod --replSet ${MONGO_REPLICA_SET_NAME} --bind_ip_all
+    restart: unless-stopped
     ports:
       - "27017:27017"
+    command: mongod --replSet myReplicaSet --bind_ip_all
     volumes:
       - mongodb_data:/data/db
+      - ./init-scripts/mongo:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       timeout: 20s
       retries: 10
     networks:
@@ -197,30 +212,52 @@ services:
   mongo2:
     image: mongo:7.0
     container_name: between_us_mongo_2
-    command: mongod --replSet ${MONGO_REPLICA_SET_NAME} --bind_ip_all
+    restart: unless-stopped
     ports:
       - "27018:27017"
+    command: mongod --replSet myReplicaSet --bind_ip_all
     volumes:
       - mongo2_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      timeout: 20s
-      retries: 10
     networks:
       - between-us-network
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      timeout: 20s
+      retries: 10
 
   mongo3:
     image: mongo:7.0
     container_name: between_us_mongo_3
-    command: mongod --replSet ${MONGO_REPLICA_SET_NAME} --bind_ip_all
+    restart: unless-stopped
     ports:
       - "27019:27017"
+    command: mongod --replSet myReplicaSet --bind_ip_all
     volumes:
       - mongo3_data:/data/db
+    networks:
+      - between-us-network
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       timeout: 20s
       retries: 10
+
+  # Mongo Express
+  mongo-express:
+    image: mongo-express:latest
+    container_name: between_us_mongo_express
+    restart: unless-stopped
+    ports:
+      - "8082:8081"
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://mongo1:27017,mongo2:27017,mongo3:27017/?replicaSet=myReplicaSet
+      - ME_CONFIG_BASICAUTH_USERNAME=${ME_ADMIN_USER}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${ME_ADMIN_PASSWORD}
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+    depends_on:
+      mongo1:
+        condition: service_healthy
+      mongo-setup:
+        condition: service_completed_successfully
     networks:
       - between-us-network
 
@@ -228,8 +265,6 @@ services:
     image: mongo:7.0
     container_name: mongo_setup
     restart: "no"
-    env_file:
-      - .env
     depends_on:
       mongo1:
         condition: service_healthy
@@ -239,7 +274,7 @@ services:
         condition: service_healthy
     volumes:
       - ./scripts:/scripts
-    entrypoint: ["bash", "/scripts/init-replica-set.sh"]
+    command: /scripts/init-replica-set.sh
     networks:
       - between-us-network
 
@@ -254,33 +289,61 @@ networks:
     driver: bridge
 ```
 
------
+---
+
+## Service Details
+
+| Service         | Port  | Description                      |
+| --------------- | ----- | -------------------------------- |
+| `app`           | 8080  | Main BetweenUsServer application |
+| `mysql`         | 3306  | MySQL database server            |
+| `phpmyadmin`    | 8081  | Web interface for MySQL          |
+| `mongo1`        | 27017 | MongoDB primary replica          |
+| `mongo2`        | 27018 | MongoDB secondary replica        |
+| `mongo3`        | 27019 | MongoDB secondary replica        |
+| `mongo-express` | 8082  | Web interface for MongoDB        |
+
+---
 
 ## Running the Application
 
-This is the recommended way to run the application, as Docker handles the entire environment setup.
+1. **Prerequisites**
+   Install Docker & Docker Compose
 
-1.  **Prerequisites**:
+2. **Clone Repo**
 
-    * Docker and Docker Compose
+   ```bash
+   git clone https://github.com/aiyu-ayaan/BetweenUsServer.git
+   cd BetweenUsServer
+   ```
 
-2.  **Clone the repository**:
+3. **Create Configs**
 
-    ```bash
-    git clone https://github.com/aiyu-ayaan/BetweenUsServer.git
-    cd BetweenUsServer
-    ```
+    * `.env` file
+    * `init-replica-set.sh` script
 
-3.  **Create configurations**:
+4. **Run with Docker**
 
-    * Create the `.env` file as described in [Step 1](https://www.google.com/search?q=%231-environment-variables-env-file).
-    * Create the `init-replica-set.sh` script as described in [Step 2](https://www.google.com/search?q=%232-mongodb-initialization-script).
+   ```bash
+   docker-compose up --build
+   ```
 
-4.  **Build and run with Docker Compose**:
+5. **Access Services**
 
-    ```bash
-    docker-compose up --build
-    ```
+    * Main App → `http://localhost:8080`
+    * MySQL (phpMyAdmin) → `http://localhost:8081`
+    * MongoDB (Mongo Express) → `http://localhost:8082`
 
-5.  **Access the application**:
-    The server will be available at `http://localhost:8080`.
+---
+
+## Development Commands
+
+```bash
+docker-compose up -d               # Start in detached mode
+docker-compose logs app            # Logs for app
+docker-compose down                # Stop services
+docker-compose down -v             # Stop & delete volumes (⚠️ data loss)
+docker-compose up --build app      # Rebuild specific service
+```
+
+---
