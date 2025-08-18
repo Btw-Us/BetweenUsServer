@@ -45,17 +45,13 @@ fun Routing.getPersonalChatsRoute() {
             for (frame in incoming) {
                 when (frame) {
                     is Frame.Text -> {
-                        val text = frame.readText()
-                        println("Received from user $userId: $text")
                     }
 
                     is Frame.Close -> {
-                        println("User $userId closed connection")
                         break
                     }
 
                     else -> {
-                        // Handle other frame types if needed
                     }
                 }
             }

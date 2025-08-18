@@ -23,6 +23,7 @@ import com.mongodb.client.model.changestream.OperationType
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.runBlocking
 
 class PersonChatRepositoryImp(
     database: MongoDatabase = configureMongoDB()
@@ -67,8 +68,14 @@ class PersonChatRepositoryImp(
         val pipeline = listOf(
             Aggregates.match(
                 Filters.or(
-                    Filters.eq("fullDocument.userId", userId),
-                    Filters.eq("fullDocument.friendId", userId)
+                    Filters.and(
+                        Filters.`in`("operationType", listOf("insert", "update", "replace")),
+                        Filters.or(
+                            Filters.eq("fullDocument.userId", userId),
+                            Filters.eq("fullDocument.friendId", userId)
+                        )
+                    ),
+                    Filters.eq("operationType", "delete")
                 )
             )
         )
@@ -76,7 +83,6 @@ class PersonChatRepositoryImp(
         return personalChatCollection.watch(pipeline)
             .fullDocument(FullDocument.UPDATE_LOOKUP)
             .filter { changeStreamDocument ->
-                // Filter changes that are relevant to this user
                 when (changeStreamDocument.operationType) {
                     OperationType.INSERT, OperationType.UPDATE, OperationType.REPLACE -> {
                         val document = changeStreamDocument.fullDocument
@@ -84,19 +90,13 @@ class PersonChatRepositoryImp(
                     }
 
                     OperationType.DELETE -> {
-                        // For deletes, we need to check if the deleted document was relevant
-                        // This is trickier since we don't have the full document
-                        // We'll need to track this differently or accept all deletes
                         true
                     }
 
                     else -> false
                 }
             }
-            .onEach { changeStreamDocument ->
-                println("Change detected for user $userId: ${changeStreamDocument.operationType} on document ${changeStreamDocument.fullDocument?.id}")
-            }
-            .scan(emptyList<PersonalChatRoom>()) { currentList, changeStreamDocument ->
+            .scan(runBlocking { getInitialPersonalChats(userId) }) { currentList, changeStreamDocument ->
                 try {
                     when (changeStreamDocument.operationType) {
                         OperationType.INSERT -> {
@@ -125,6 +125,9 @@ class PersonChatRepositoryImp(
                             val documentId = changeStreamDocument.documentKey?.get("_id")?.asString()?.value
                             if (documentId != null) {
                                 println("DELETE: Removing document $documentId for user $userId")
+                                println(
+                                    "$currentList"
+                                )
                                 currentList.filter { it.id != documentId }
                             } else {
                                 println("DELETE: No document key found")

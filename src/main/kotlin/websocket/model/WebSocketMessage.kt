@@ -16,12 +16,20 @@
 package com.aatech.websocket.model
 
 import com.aatech.database.mongodb.model.PersonalChatRoom
-import io.ktor.websocket.WebSocketSession
+import io.ktor.websocket.*
 import kotlinx.serialization.Serializable
 
 @Serializable
+enum class WebSocketEventSendingDataType {
+    INITIAL_DATA,
+    UPDATE_DATA,
+    TRIGGER_EVENT,
+}
+
+
+@Serializable
 data class WebSocketMessage<T>(
-    val type: String,
+    val type: WebSocketEventSendingDataType,
     val data: T,
     val timestamp: Long = System.currentTimeMillis()
 )

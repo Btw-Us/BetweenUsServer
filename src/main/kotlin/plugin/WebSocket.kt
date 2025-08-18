@@ -15,8 +15,10 @@
 
 package com.aatech.plugin
 
+import io.ktor.serialization.kotlinx.*
 import io.ktor.server.application.*
 import io.ktor.server.websocket.*
+import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.seconds
 
 fun Application.configureWebSocket() {
@@ -25,5 +27,11 @@ fun Application.configureWebSocket() {
         timeout = 15.seconds
         maxFrameSize = Long.MAX_VALUE
         masking = false
+        contentConverter = KotlinxWebsocketSerializationConverter(Json {
+            prettyPrint = true
+            isLenient = true
+            ignoreUnknownKeys = true // Ignore unknown keys in JSON
+            encodeDefaults = true
+        })
     }
 }
