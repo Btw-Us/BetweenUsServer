@@ -18,6 +18,8 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.websocket.*
+import io.ktor.websocket.*
 
 suspend fun RoutingContext.checkAuth(
     onSuccess: suspend (AuthenticationParams) -> Unit
@@ -177,5 +179,90 @@ suspend fun RoutingContext.checkDeviceIntegrity(
         onSuccess.invoke(
             authParam
         )
+    }
+}
+
+suspend fun DefaultWebSocketServerSession.checkWebSocketAuth(
+    onSuccess: suspend (AuthenticationParams) -> Unit
+) {
+    try {
+        val tokenPrincipal = call.principal<BearerTokenCredential>()
+        if (tokenPrincipal == null) {
+            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No valid authentication token provided"))
+            return
+        }
+
+        val authTokenService = DaggerMySqlComponent.create().getAuthTokenService()
+        val isValidToken = authTokenService.isTokenValid(tokenPrincipal.token)
+        if (!isValidToken) {
+            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Invalid or expired authentication token"))
+            return
+        }
+
+        val clientType = call.request.header("X-Client-Type")?.let {
+            try {
+                ClientType.valueOf(it)
+            } catch (e: IllegalArgumentException) {
+                ClientType.OTHER
+            }
+        } ?: ClientType.OTHER
+
+        val authParam = AuthenticationParams(
+            clientType = clientType,
+            authToken = tokenPrincipal.token,
+            userId = call.request.header("X-User-Id"),
+            clientVersion = call.request.header("X-Client-Version"),
+            deviceId = call.request.header("X-Device-Id"),
+            session = call.request.header("X-Session"),
+            deviceModel = call.request.header("X-Device-Model")
+        )
+
+        val validationError = authParam.isAuthenticationParams()
+        if (validationError != null) {
+            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, validationError.errorMessage))
+            return
+        }
+
+        onSuccess(authParam)
+    } catch (e: Exception) {
+        close(CloseReason(CloseReason.Codes.INTERNAL_ERROR, "Authentication error: ${e.message}"))
+    }
+}
+
+
+suspend fun DefaultWebSocketServerSession.checkDeviceIntegrity(
+    isCheckForUserId: Boolean = true,
+    currentUserId: String? = null,
+    userLogInRepository: UserLogInRepository? = null,
+    onSuccess: suspend (AuthenticationParams) -> Unit
+){
+    checkWebSocketAuth { authParam ->
+        if (isCheckForUserId && (authParam.userId == null || authParam.userId.isEmpty())) {
+            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "User ID is required."))
+            return@checkWebSocketAuth
+        }
+        if (currentUserId != null && authParam.userId != currentUserId) {
+            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized user"))
+            return@checkWebSocketAuth
+        }
+        if (authParam.clientVersion == null || authParam.clientVersion.isEmpty()) {
+            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Client version is required."))
+            return@checkWebSocketAuth
+        }
+        if (authParam.deviceId == null || authParam.deviceId.isEmpty()) {
+            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Device ID is required."))
+            return@checkWebSocketAuth
+        }
+        if (userLogInRepository != null) {
+            val isDeviceValid = userLogInRepository.checkIsUserDeviceValid(
+                userId = authParam.userId ?: "",
+                deviceId = authParam.deviceId
+            )
+            if (!isDeviceValid) {
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized device"))
+                return@checkWebSocketAuth
+            }
+        }
+        onSuccess.invoke(authParam)
     }
 }
