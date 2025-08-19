@@ -4,10 +4,12 @@ sudo apt update
 sudo apt upgrade
 
 # Install dependencies
+echo "\n\n\n"
 echo "Installing dependencies...🏗️"
 echo "Installing Java...☕"
 sudo apt install default-jdk
 
+echo "\n\n\n"
 echo "Updating and installing Docker...🐳"
 sudo apt-get update
 sudo apt-get install ca-certificates curl
@@ -25,12 +27,13 @@ sudo apt-get update
 
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+echo "\n\n\n"
 
 echo "Cloning Between Us Server repository...📦"
 git clone https://github.com/Btw-Us/BetweenUsServer.git
 
 
-
+echo "\n\n\n"
 echo "Creating Folders for Databases 📂"
 
 mkdir -p ${HOME}/databases/between-us/mysql
