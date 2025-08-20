@@ -19,6 +19,7 @@ import com.aatech.config.api_config.FirebaseMessagingRoutes
 import com.aatech.config.api_config.checkDeviceIntegrity
 import com.aatech.config.response.createErrorResponse
 import com.aatech.dagger.modules.MySqlModule
+import com.aatech.database.mysql.model.entity.OperationType
 import com.aatech.database.mysql.model.entity.UserFirebaseToken
 import com.aatech.database.mysql.model.entity.UserNotificationToken
 import com.aatech.database.mysql.repository.user.UserLogInRepository
@@ -67,14 +68,35 @@ fun Routing.createOrUpdateFirebaseMessagingToken(userLogInRepository: UserLogInR
                     return@checkDeviceIntegrity
                 }
                 try {
-                    userLogInRepository.addOrUpdateUserNotificationToken(
+                    val operationType = userLogInRepository.addOrUpdateUserNotificationToken(
                         userId = userFirebaseToken.userId,
                         tokenModel = UserNotificationToken(
                             userId = userFirebaseToken.userId,
                             token = userFirebaseToken.token
                         )
                     )
-                    call.respond(HttpStatusCode.OK, "Token updated successfully.")
+                    when (operationType) {
+                        OperationType.CREATE -> call.respond(
+                            HttpStatusCode.Created,
+                            "Token created successfully."
+                        )
+                        OperationType.UPDATE -> call.respond(
+                            HttpStatusCode.OK,
+                            "Token updated successfully."
+                        )
+                        OperationType.DELETE -> call.respond(
+                            HttpStatusCode.OK,
+                            "Token deleted successfully."
+                        )
+                        OperationType.ERROR -> call.respond(
+                            HttpStatusCode.InternalServerError,
+                            createErrorResponse(
+                                code = HttpStatusCode.InternalServerError.value,
+                                message = "Internal Server Error",
+                                details = "An error occurred while processing the request."
+                            )
+                        )
+                    }
                 } catch (e: Exception) {
                     call.respond(
                         HttpStatusCode.InternalServerError,
