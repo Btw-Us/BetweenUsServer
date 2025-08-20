@@ -380,3 +380,21 @@ object UserFriendsTable : Table("user_friends") {
     }
 }
 
+
+object UserNotificationTokenTable : Table("user_notification_token") {
+    val userId = varchar("pk_user_id", 255).references(
+        UserTable.uuid,
+        onDelete = ReferenceOption.CASCADE,
+        onUpdate = ReferenceOption.CASCADE
+    )
+    val token = varchar("token", 255).uniqueIndex()
+    val createdAt = long("created_at").default(System.currentTimeMillis())
+    val updatedAt = long("updated_at").default(System.currentTimeMillis())
+
+    override val primaryKey: PrimaryKey
+        get() = PrimaryKey(userId, name = "pk_user_notifications_token")
+
+    init {
+        index("idx_user_id", true, userId)
+    }
+}

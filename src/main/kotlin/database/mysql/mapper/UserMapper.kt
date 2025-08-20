@@ -84,3 +84,11 @@ fun rowToUserFriends(row: ResultRow): UserFriends =
     )
 
 
+fun rowToUserNotificationToken(row: ResultRow): UserNotificationToken =
+    UserNotificationToken(
+        userId = row[UserNotificationTokenTable.userId],
+        token = row[UserNotificationTokenTable.token],
+        createdAt = row[UserNotificationTokenTable.createdAt],
+        updatedAt = row[UserNotificationTokenTable.updatedAt]
+    )
+

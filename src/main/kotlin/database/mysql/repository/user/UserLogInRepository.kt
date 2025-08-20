@@ -10,9 +10,11 @@
 
 package com.aatech.database.mysql.repository.user
 
+import com.aatech.database.mysql.model.entity.OperationType
 import com.aatech.database.mysql.model.entity.SetUpUserProfile
 import com.aatech.database.mysql.model.entity.User
 import com.aatech.database.mysql.model.entity.UserLogInResponse
+import com.aatech.database.mysql.model.entity.UserNotificationToken
 
 
 interface UserLogInRepository {
@@ -57,4 +59,9 @@ interface UserLogInRepository {
         userId: String,
         passwordHash: String
     ): Boolean
+
+    suspend fun addOrUpdateUserNotificationToken(
+        userId: String,
+        tokenModel : UserNotificationToken
+    ): OperationType
 }

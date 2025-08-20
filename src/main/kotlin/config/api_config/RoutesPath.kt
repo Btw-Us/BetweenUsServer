@@ -46,3 +46,7 @@ sealed class UserRoutes(val path: String) {
     object RespondToFriendRequest : UserRoutes("$USER/friends/respond")
     object RemoveFriend : UserRoutes("$USER/friends/remove")
 }
+
+sealed class FirebaseMessagingRoutes(val path: String) {
+    object AddOrUpdateNotificationToken : FirebaseMessagingRoutes("$USER/notification-token/add-or-update")
+}

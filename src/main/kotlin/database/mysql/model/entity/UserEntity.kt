@@ -8,6 +8,10 @@ import kotlinx.serialization.Serializable
 import kotlin.random.Random
 
 
+enum class OperationType {
+    CREATE, UPDATE, DELETE,ERROR
+}
+
 @Serializable
 data class RegisterUserRequest(
     val email: String,
@@ -113,5 +117,14 @@ data class UserFriends(
     val isFavorite: Boolean = false,
     val lastMessage: String? = null,
     val lastMessageAt: Long? = null
+)
+
+
+@Serializable
+data class UserNotificationToken(
+    val userId: String,
+    val token: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long? = null
 )
 

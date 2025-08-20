@@ -13,13 +13,8 @@ package com.aatech.database.mysql.repository.user.impl
 import com.aatech.cryptography.hashing.HashingManager
 import com.aatech.database.mysql.mapper.rowToUser
 import com.aatech.database.mysql.mapper.rowToUserPassword
-import com.aatech.database.mysql.model.UserDevicesTable
-import com.aatech.database.mysql.model.UserPasswordTable
-import com.aatech.database.mysql.model.UserPrivacySettingsTable
-import com.aatech.database.mysql.model.UserTable
-import com.aatech.database.mysql.model.entity.SetUpUserProfile
-import com.aatech.database.mysql.model.entity.User
-import com.aatech.database.mysql.model.entity.UserLogInResponse
+import com.aatech.database.mysql.model.*
+import com.aatech.database.mysql.model.entity.*
 import com.aatech.database.mysql.repository.user.UserLogInRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -183,6 +178,44 @@ class UserLogInRepositoryImp : UserLogInRepository {
             )
             userInputPasswordHash == storedPasswordHashWithSalt.first
         }
+
+    override suspend fun addOrUpdateUserNotificationToken(
+        userId: String,
+        tokenModel: UserNotificationToken
+    ): OperationType {
+        return withContext(Dispatchers.IO) {
+            transaction {
+                val existingToken = UserNotificationTokenTable.selectAll()
+                    .where { UserNotificationTokenTable.userId eq userId }
+                    .mapNotNull { it[UserNotificationTokenTable.token] }
+                    .singleOrNull()
+
+                if (existingToken != null)
+                    UserNotificationTokenTable.update({ UserNotificationTokenTable.userId eq userId }) {
+                        it[UserNotificationTokenTable.token] = tokenModel.token
+                        it[UserNotificationTokenTable.updatedAt] = System.currentTimeMillis()
+                    }.let {
+                        if (it > 0)
+                            OperationType.UPDATE
+                        else
+                            OperationType.ERROR
+
+                    }
+                else
+                    UserNotificationTokenTable.insert {
+                        it[UserNotificationTokenTable.userId] = userId
+                        it[token] = tokenModel.token
+                        it[createdAt] = System.currentTimeMillis()
+                        it[updatedAt] = System.currentTimeMillis()
+                    }.let {
+                        if (it.insertedCount > 0)
+                            OperationType.CREATE
+                        else
+                            OperationType.ERROR
+                    }
+            }
+        }
+    }
 
 
 }

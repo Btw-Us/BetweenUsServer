@@ -30,3 +30,9 @@ data class ChangeFriendRequestStatusBody(
     val friendId: String,
     val requestStatus: FriendshipRequestStatus
 )
+
+@Serializable
+data class UserFirebaseToken(
+    val userId: String,
+    val token: String
+)
