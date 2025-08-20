@@ -87,8 +87,14 @@ fun NotificationModel.toMessage(): Message =
             with(message.data) {
                 if (this != null) {
                     when (this) {
-                        is SendOrAcceptFriendRequest ->
-                            this.putData()
+                        is SendOrAcceptFriendRequest -> {
+                            putData("type", "SendOrAcceptFriendRequest")
+                            putData("senderId", senderId)
+                            putData("receiverId", receiverId)
+                            putData("senderName", senderName)
+                            putData("senderImage", senderImage)
+                            putData("actionType", actionType.name)
+                        }
                     }
                 }
             }
