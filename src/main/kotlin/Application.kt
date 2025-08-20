@@ -25,4 +25,5 @@ fun Application.mainModule() {
     configureMonitoring()
     configureMySqlDatabases()
     configureMongoDB()
+    configureFirebaseCloudMessage()
 }

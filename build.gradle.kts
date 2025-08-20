@@ -56,13 +56,10 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:${exposedVersion}")
     implementation("org.jetbrains.exposed:exposed-java-time:${exposedVersion}")
     implementation("org.jetbrains.exposed:exposed-migration:${exposedVersion}")
-
     implementation("org.mongodb:mongodb-driver-kotlin-coroutine:5.0.0")
-
-
     implementation("org.bouncycastle:bcprov-jdk18on:1.81")
-
     implementation("org.mindrot:jbcrypt:0.4")
+    implementation("com.google.firebase:firebase-admin:9.3.0")
 
 
 }
