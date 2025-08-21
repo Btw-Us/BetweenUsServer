@@ -17,10 +17,7 @@ package com.aatech.database.mysql.repository.user.impl
 
 import com.aatech.database.mysql.mapper.rowToFriendRequest
 import com.aatech.database.mysql.mapper.rowToUser
-import com.aatech.database.mysql.model.FriendsRequestTable
-import com.aatech.database.mysql.model.FriendshipRequestStatus
-import com.aatech.database.mysql.model.UserFriendsTable
-import com.aatech.database.mysql.model.UserTable
+import com.aatech.database.mysql.model.*
 import com.aatech.database.mysql.model.entity.SearchUserResponse
 import com.aatech.database.mysql.model.entity.User
 import com.aatech.database.mysql.repository.user.UserInteractionRepository
@@ -258,6 +255,26 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
 
         }
         FriendshipRequestStatus.ACCEPTED
+    }
+
+    override suspend fun getUserById(userId: String): User? =
+        withContext(Dispatchers.IO) {
+            transaction {
+                UserTable.selectAll()
+                    .where { UserTable.uuid eq userId }
+                    .map(::rowToUser)
+                    .firstOrNull()
+            }
+        }
+
+
+    override suspend fun getUserTokenById(userId: String): String? = withContext(Dispatchers.IO) {
+        transaction {
+            UserNotificationTokenTable.selectAll()
+                .where { UserNotificationTokenTable.userId eq userId }
+                .map { it[UserNotificationTokenTable.token] }
+                .firstOrNull()
+        }
     }
 
 

@@ -55,19 +55,8 @@ data class SendOrAcceptFriendRequest(
     val receiverId: String,
     val senderName: String,
     val senderImage: String,
-    val actionType: SendOrAcceptFriendRequestType = SendOrAcceptFriendRequestType.SEND
-) : NotificationData {
-
-    fun putData(): Map<String, String> {
-        return mapOf(
-            "senderId" to senderId,
-            "receiverId" to receiverId,
-            "senderName" to senderName,
-            "senderImage" to senderImage,
-            "type" to actionType.name
-        )
-    }
-}
+    val actionType: SendOrAcceptFriendRequestType = SendOrAcceptFriendRequestType.SEND,
+) : NotificationData
 
 
 fun NotificationModel.toMessage(): Message =
@@ -76,6 +65,11 @@ fun NotificationModel.toMessage(): Message =
             Notification.builder()
                 .setTitle(message.notification.title)
                 .setBody(message.notification.body)
+                .setImage(
+                    if (message.data == SendOrAcceptFriendRequest)
+                        (message.data as SendOrAcceptFriendRequest).senderImage
+                    else null
+                )
                 .build()
         ).apply {
             if (message.to != null)

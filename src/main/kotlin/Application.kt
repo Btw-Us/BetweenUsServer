@@ -19,11 +19,11 @@ fun main(args: Array<String>) {
 
 fun Application.mainModule() {
     configureAuthentication()
+    configureFirebaseCloudMessage()
     configureWebSocket()
     configureRouting()
     configureSerialization()
     configureMonitoring()
     configureMySqlDatabases()
     configureMongoDB()
-    configureFirebaseCloudMessage()
 }

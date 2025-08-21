@@ -18,11 +18,13 @@ package com.aatech.routes
 import com.aatech.config.api_config.UserRoutes
 import com.aatech.config.api_config.checkDeviceIntegrity
 import com.aatech.config.response.createErrorResponse
+import com.aatech.dagger.components.DaggerFCMComponent
 import com.aatech.dagger.modules.MySqlModule
 import com.aatech.database.mysql.model.entity.ChangeFriendRequestStatusBody
 import com.aatech.database.mysql.model.entity.SendFriendRequestBody
 import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import com.aatech.database.mysql.repository.user.UserLogInRepository
+import com.aatech.fcm.*
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
@@ -33,9 +35,18 @@ import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 fun Routing.allUsersRoutes() {
     val userRepository = MySqlModule().provideUserInteractionRepository()
     val userLogInRepository = MySqlModule().provideUserLogInRepository()
-    findFriends(repository = userRepository, userLogInRepository = userLogInRepository)
+    val fcmModule = DaggerFCMComponent.create().getSendMessageService()
+
+    findFriends(
+        repository = userRepository,
+        userLogInRepository = userLogInRepository,
+    )
     getAllFriends(repository = userRepository, userLogInRepository = userLogInRepository)
-    sendFriendRequest(repository = userRepository, userLogInRepository = userLogInRepository)
+    sendFriendRequest(
+        repository = userRepository,
+        userLogInRepository = userLogInRepository,
+        fcmModule = fcmModule
+    )
     getAllReceivedRequests(repository = userRepository, userLogInRepository = userLogInRepository)
     getAllSentRequests(repository = userRepository, userLogInRepository = userLogInRepository)
     respondToFriendRequest(repository = userRepository, userLogInRepository = userLogInRepository)
@@ -89,7 +100,8 @@ fun Routing.findFriends(
 
 fun Routing.sendFriendRequest(
     repository: UserInteractionRepository,
-    userLogInRepository: UserLogInRepository
+    userLogInRepository: UserLogInRepository,
+    fcmModule: SendMessageService
 ) {
     authenticate("auth-bearer") {
         post(UserRoutes.AddOrRemoveFriendRequest.path) {
@@ -127,6 +139,33 @@ fun Routing.sendFriendRequest(
                     val message = when (isRequestSent) {
                         UserInteractionRepository.FriendshipAction.SEND -> "Friend request sent successfully."
                         UserInteractionRepository.FriendshipAction.UNSEND -> "Friend request unsent successfully."
+                    }
+                    if (isRequestSent == UserInteractionRepository.FriendshipAction.SEND) {
+                        val userDetails = repository.getUserById(body.requesterId)
+                            ?: throw IllegalArgumentException("User details not found for ID: ${body.receiverId}")
+                        val userToken = repository.getUserTokenById(body.receiverId)
+                            ?: throw IllegalArgumentException("User details not found for ID: ${body.requesterId}")
+                        val notificationModel = NotificationModel(
+                            message = MessageSend(
+                                topic = null,
+                                to = userToken,
+                                notification = NotificationSend(
+                                    title = "Friend Request",
+                                    body = "${userDetails.username} send you a friend request 🥂."
+                                ),
+                                data = SendOrAcceptFriendRequest(
+                                    senderId = body.requesterId,
+                                    receiverId = body.receiverId,
+                                    senderName = userDetails.username,
+                                    senderImage = userDetails.profilePicture ?: "",
+                                    actionType = SendOrAcceptFriendRequestType.SEND
+                                )
+                            )
+                        )
+
+                        fcmModule.sendMessage(
+                            notificationModel.toMessage()
+                        )
                     }
                     call.respond(HttpStatusCode.Created, message)
                 } catch (e: ExposedSQLException) {

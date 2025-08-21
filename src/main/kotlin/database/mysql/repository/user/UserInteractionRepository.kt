@@ -52,4 +52,13 @@ interface UserInteractionRepository {
         friendId: String,
         requestStatus: FriendshipRequestStatus
     ): FriendshipRequestStatus
+
+
+    suspend fun getUserById(
+        userId: String
+    ): User?
+
+    suspend fun getUserTokenById(
+        userId: String
+    ): String?
 }
