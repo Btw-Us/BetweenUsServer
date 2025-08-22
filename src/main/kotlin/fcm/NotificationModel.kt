@@ -94,3 +94,40 @@ fun NotificationModel.toMessage(): Message =
             }
         }
         .build()
+
+class NotificationBuilder {
+    private var userToken: String? = null
+    private var topic: String? = null
+    private var title: String = ""
+    private var body: String = ""
+    private var data: NotificationData? = null
+
+    fun to(token: String) = apply { this.userToken = token }
+    fun topic(topic: String) = apply { this.topic = topic }
+    fun title(title: String) = apply { this.title = title }
+    fun body(body: String) = apply { this.body = body }
+    fun data(data: NotificationData) = apply { this.data = data }
+
+    fun setData(senderId: String, receiverId: String, senderName: String, senderImage: String = "") = apply {
+        this.data = SendOrAcceptFriendRequest(
+            senderId = senderId,
+            receiverId = receiverId,
+            senderName = senderName,
+            senderImage = senderImage,
+            actionType = SendOrAcceptFriendRequestType.SEND
+        )
+    }
+
+    fun build(): NotificationModel {
+        return NotificationModel(
+            message = MessageSend(
+                to = userToken,
+                topic = topic,
+                notification = NotificationSend(title = title, body = body),
+                data = data
+            )
+        )
+    }
+}
+
+fun notification() = NotificationBuilder()

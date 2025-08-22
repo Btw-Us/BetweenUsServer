@@ -20,11 +20,14 @@ import com.aatech.config.api_config.checkDeviceIntegrity
 import com.aatech.config.response.createErrorResponse
 import com.aatech.dagger.components.DaggerFCMComponent
 import com.aatech.dagger.modules.MySqlModule
+import com.aatech.database.mysql.model.FriendshipRequestStatus
 import com.aatech.database.mysql.model.entity.ChangeFriendRequestStatusBody
 import com.aatech.database.mysql.model.entity.SendFriendRequestBody
 import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import com.aatech.database.mysql.repository.user.UserLogInRepository
-import com.aatech.fcm.*
+import com.aatech.fcm.NotificationBuilder
+import com.aatech.fcm.SendMessageService
+import com.aatech.fcm.toMessage
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
@@ -49,7 +52,11 @@ fun Routing.allUsersRoutes() {
     )
     getAllReceivedRequests(repository = userRepository, userLogInRepository = userLogInRepository)
     getAllSentRequests(repository = userRepository, userLogInRepository = userLogInRepository)
-    respondToFriendRequest(repository = userRepository, userLogInRepository = userLogInRepository)
+    respondToFriendRequest(
+        repository = userRepository,
+        userLogInRepository = userLogInRepository,
+        fcmModule = fcmModule
+    )
 }
 
 fun Routing.findFriends(
@@ -145,26 +152,18 @@ fun Routing.sendFriendRequest(
                             ?: throw IllegalArgumentException("User details not found for ID: ${body.receiverId}")
                         val userToken = repository.getUserTokenById(body.receiverId)
                             ?: throw IllegalArgumentException("User details not found for ID: ${body.requesterId}")
-                        val notificationModel = NotificationModel(
-                            message = MessageSend(
-                                topic = null,
-                                to = userToken,
-                                notification = NotificationSend(
-                                    title = "Friend Request",
-                                    body = "${userDetails.username} send you a friend request 🥂."
-                                ),
-                                data = SendOrAcceptFriendRequest(
+                        fcmModule.sendMessage(
+                            NotificationBuilder()
+                                .to(userToken)
+                                .title("Friend Request")
+                                .body("${userDetails.username} send you a friend request 🥂.")
+                                .setData(
                                     senderId = body.requesterId,
                                     receiverId = body.receiverId,
                                     senderName = userDetails.username,
-                                    senderImage = userDetails.profilePicture ?: "",
-                                    actionType = SendOrAcceptFriendRequestType.SEND
+                                    senderImage = userDetails.profilePicture ?: ""
                                 )
-                            )
-                        )
-
-                        fcmModule.sendMessage(
-                            notificationModel.toMessage()
+                                .build().toMessage()
                         )
                     }
                     call.respond(HttpStatusCode.Created, message)
@@ -282,7 +281,8 @@ fun Routing.getAllSentRequests(
 
 fun Routing.respondToFriendRequest(
     repository: UserInteractionRepository,
-    userLogInRepository: UserLogInRepository
+    userLogInRepository: UserLogInRepository,
+    fcmModule: SendMessageService
 ) {
     authenticate("auth-bearer") {
         post(UserRoutes.RespondToFriendRequest.path) {
@@ -318,6 +318,26 @@ fun Routing.respondToFriendRequest(
                         friendId = body.friendId,
                         requestStatus = body.requestStatus
                     )
+                    val friendsToken = repository.getUserTokenById(body.friendId)
+                    if (body.requestStatus == FriendshipRequestStatus.ACCEPTED) {
+                        if (friendsToken != null) {
+                            val userDetails = repository.getUserById(body.userId)
+                                ?: throw IllegalArgumentException("User details not found for ID: ${body.userId}")
+                            fcmModule.sendMessage(
+                                NotificationBuilder()
+                                    .to(friendsToken)
+                                    .title("Friend Request Accepted")
+                                    .body("${userDetails.username} accepted your friend request 🥂.")
+                                    .setData(
+                                        senderId = body.userId,
+                                        receiverId = body.friendId,
+                                        senderName = userDetails.username,
+                                        senderImage = userDetails.profilePicture ?: ""
+                                    )
+                                    .build().toMessage()
+                            )
+                        }
+                    }
                     call.respond(HttpStatusCode.OK, responseMessage)
                 } catch (e: Exception) {
                     call.respond(
