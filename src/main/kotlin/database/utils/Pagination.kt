@@ -20,14 +20,14 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PaginationRequest(
     val page: Int = 1,
-    val size: Int = 20,
+    val pageSize: Int = 20,
 ) {
-    val offset: Int get() = (page - 1) * size
-    val limit: Int get() = size
+    val offset: Int get() = (page - 1) * pageSize
+    val limit: Int get() = pageSize
 
     init {
         require(page >= 1) { "Page must be >= 1" }
-        require(size in 1..100) { "Size must be between 1 and 100" }
+        require(pageSize in 1..100) { "Size must be between 1 and 100" }
     }
 }
 

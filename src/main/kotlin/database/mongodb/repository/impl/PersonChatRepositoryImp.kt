@@ -74,11 +74,11 @@ class PersonChatRepositoryImp(
             .limit(paginationRequest.limit)
             .toList()
 
-        val totalPages = ((totalItems + paginationRequest.size - 1) / paginationRequest.size).toInt()
+        val totalPages = ((totalItems + paginationRequest.pageSize - 1) / paginationRequest.pageSize).toInt()
 
         val paginationInfo = PaginationInfo(
             currentPage = paginationRequest.page,
-            pageSize = paginationRequest.size,
+            pageSize = paginationRequest.pageSize,
             totalItems = totalItems,
             totalPages = totalPages,
             hasNext = paginationRequest.page < totalPages,
@@ -179,7 +179,7 @@ class PersonChatRepositoryImp(
                     // Recalculate pagination info
                     val newPaginationInfo = currentResponse.pagination.copy(
                         totalItems = currentList.size.toLong(),
-                        totalPages = ((currentList.size + paginationRequest.size - 1) / paginationRequest.size)
+                        totalPages = ((currentList.size + paginationRequest.pageSize - 1) / paginationRequest.pageSize)
                     )
 
                     PaginatedResponse(currentList, newPaginationInfo)

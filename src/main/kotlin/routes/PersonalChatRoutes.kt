@@ -47,6 +47,8 @@ fun Routing.getPersonalChatsRoute(
     authenticate("auth-bearer") {
         webSocket("${PersonalChatRoutes.GetAllChats.path}/{userId}") {
             val userId = call.parameters["userId"]
+            val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+            val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20
             checkDeviceIntegrity(
                 currentUserId = userId,
                 userLogInRepository = userLogInRepository
@@ -56,7 +58,12 @@ fun Routing.getPersonalChatsRoute(
                     return@checkDeviceIntegrity
                 }
                 val connectionManager = DaggerMongoDbComponent.create().getPersonChatRoomConnectionManager()
-                connectionManager.addConnection(userId, paginationRequest = PaginationRequest(),this)
+                connectionManager.addConnection(
+                    userId, paginationRequest = PaginationRequest(
+                        page = page,
+                        pageSize = pageSize
+                    ), this
+                )
                 try {
                     for (frame in incoming) {
                         when (frame) {
