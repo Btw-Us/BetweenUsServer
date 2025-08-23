@@ -27,6 +27,7 @@ import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import com.aatech.database.mysql.repository.user.UserLogInRepository
 import com.aatech.fcm.NotificationBuilder
 import com.aatech.fcm.SendMessageService
+import com.aatech.fcm.SendOrAcceptFriendRequestType
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
@@ -344,6 +345,7 @@ fun Routing.respondToFriendRequest(
                                         receiverId(body.friendId)
                                         senderName(userDetails.username)
                                         senderImage(userDetails.profilePicture ?: "")
+                                        actionType(SendOrAcceptFriendRequestType.ACCEPT)
                                     }
                                     .buildToMessage()
                             )

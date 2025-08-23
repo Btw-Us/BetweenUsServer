@@ -110,6 +110,7 @@ class NotificationBuilder {
         private var senderName: String = ""
         private var senderImage: String = ""
         private var notificationId: Int = (0..100000).random()
+        private var actionType: SendOrAcceptFriendRequestType = SendOrAcceptFriendRequestType.SEND
 
 
         fun title(title: String) = apply { this.title = title }
@@ -119,6 +120,7 @@ class NotificationBuilder {
         fun senderName(senderName: String) = apply { this.senderName = senderName }
         fun senderImage(senderImage: String) = apply { this.senderImage = senderImage }
         fun notificationId(notificationId: Int) = apply { this.notificationId = notificationId }
+        fun actionType(actionType: SendOrAcceptFriendRequestType) = apply { this.actionType = actionType }
 
         fun buildSendFriendRequestData() = SendOrAcceptFriendRequestNotificationData(
             title = title,
@@ -127,7 +129,7 @@ class NotificationBuilder {
             receiverId = receiverId,
             senderName = senderName,
             senderImage = senderImage,
-            actionType = SendOrAcceptFriendRequestType.SEND,
+            actionType = actionType,
             notificationId = notificationId.toString()
         )
     }
