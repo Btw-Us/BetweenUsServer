@@ -13,11 +13,13 @@ package com.aatech.database.mongodb.repository.impl
 import com.aatech.database.mongodb.model.Message
 import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.mongodb.repository.PersonChatRepository
+import com.aatech.database.utils.PaginatedResponse
+import com.aatech.database.utils.PaginationInfo
+import com.aatech.database.utils.PaginationRequest
 import com.aatech.plugin.configureMongoDB
 import com.aatech.utils.MongoDbCollectionNames
 import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
-import com.mongodb.client.model.Sorts
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
@@ -42,7 +44,6 @@ class PersonChatRepositoryImp(
         }
     }
 
-
     override suspend fun addChatEntry(model: Message): String {
         return try {
             val result = messageCollection.insertOne(model)
@@ -52,19 +53,59 @@ class PersonChatRepositoryImp(
         }
     }
 
-    override suspend fun getInitialPersonalChats(userID: String): List<PersonalChatRoom> {
-        return personalChatCollection
-            .find(
-                Filters.or(
-                    Filters.eq("userId", userID),
-                    Filters.eq("friendId", userID)
-                )
-            )
-            .sort(Sorts.descending("lastMessageTime"))
+    suspend fun getPersonalChatsWithPagination(
+        userId: String,
+        paginationRequest: PaginationRequest
+    ): PaginatedResponse<PersonalChatRoom> {
+
+        val filter = Filters.or(
+            Filters.eq("userId", userId),
+            Filters.eq("friendId", userId)
+        )
+
+        // Get total count
+        val totalItems = personalChatCollection.countDocuments(filter)
+
+
+        // Get paginated data
+        val chatRooms = personalChatCollection
+            .find(filter)
+            .skip(paginationRequest.offset)
+            .limit(paginationRequest.limit)
             .toList()
+
+        val totalPages = ((totalItems + paginationRequest.size - 1) / paginationRequest.size).toInt()
+
+        val paginationInfo = PaginationInfo(
+            currentPage = paginationRequest.page,
+            pageSize = paginationRequest.size,
+            totalItems = totalItems,
+            totalPages = totalPages,
+            hasNext = paginationRequest.page < totalPages,
+            hasPrevious = paginationRequest.page > 1
+        )
+
+        return PaginatedResponse(chatRooms, paginationInfo)
     }
 
-    override fun watchPersonalChats(userId: String): Flow<List<PersonalChatRoom>> {
+    override suspend fun getInitialPersonalChats(
+        userID: String,
+        paginationRequest: PaginationRequest
+    ): PaginatedResponse<PersonalChatRoom> {
+        return getPersonalChatsWithPagination(userID, paginationRequest)
+    }
+
+    suspend fun getInitialPersonalChatsWithPagination(
+        userId: String,
+        paginationRequest: PaginationRequest
+    ): PaginatedResponse<PersonalChatRoom> {
+        return getPersonalChatsWithPagination(userId, paginationRequest)
+    }
+
+    override fun watchPersonalChats(
+        userId: String,
+        paginationRequest: PaginationRequest
+    ): Flow<PaginatedResponse<PersonalChatRoom>> {
         val pipeline = listOf(
             Aggregates.match(
                 Filters.or(
@@ -89,23 +130,25 @@ class PersonChatRepositoryImp(
                         document != null && (document.userId == userId || document.friendId == userId)
                     }
 
-                    OperationType.DELETE -> {
-                        true
-                    }
-
+                    OperationType.DELETE -> true
                     else -> false
                 }
             }
-            .scan(runBlocking { getInitialPersonalChats(userId) }) { currentList, changeStreamDocument ->
+            .scan(runBlocking {
+                getInitialPersonalChatsWithPagination(
+                    userId,
+                    paginationRequest
+                )
+            }) { currentResponse, changeStreamDocument ->
                 try {
+                    val currentList = currentResponse.data.toMutableList()
+
                     when (changeStreamDocument.operationType) {
                         OperationType.INSERT -> {
                             val document = changeStreamDocument.fullDocument
                             if (document != null && (document.userId == userId || document.friendId == userId)) {
                                 println("INSERT: Adding document ${document.id} for user $userId")
-                                currentList + document
-                            } else {
-                                currentList
+                                currentList.add(0, document) // Add to beginning for real-time updates
                             }
                         }
 
@@ -113,11 +156,10 @@ class PersonChatRepositoryImp(
                             val document = changeStreamDocument.fullDocument
                             if (document != null && (document.userId == userId || document.friendId == userId)) {
                                 println("UPDATE/REPLACE: Updating document ${document.id} for user $userId")
-                                // Remove old version if exists, add new version
-                                val filteredList = currentList.filter { it.id != document.id }
-                                filteredList + document
-                            } else {
-                                currentList
+                                val index = currentList.indexOfFirst { it.id == document.id }
+                                if (index != -1) {
+                                    currentList[index] = document
+                                }
                             }
                         }
 
@@ -125,46 +167,29 @@ class PersonChatRepositoryImp(
                             val documentId = changeStreamDocument.documentKey?.get("_id")?.asString()?.value
                             if (documentId != null) {
                                 println("DELETE: Removing document $documentId for user $userId")
-                                println(
-                                    "$currentList"
-                                )
-                                currentList.filter { it.id != documentId }
-                            } else {
-                                println("DELETE: No document key found")
-                                currentList
+                                currentList.removeIf { it.id == documentId }
                             }
                         }
 
                         else -> {
                             println("Other operation: ${changeStreamDocument.operationType}")
-                            currentList
                         }
                     }
+
+                    // Recalculate pagination info
+                    val newPaginationInfo = currentResponse.pagination.copy(
+                        totalItems = currentList.size.toLong(),
+                        totalPages = ((currentList.size + paginationRequest.size - 1) / paginationRequest.size)
+                    )
+
+                    PaginatedResponse(currentList, newPaginationInfo)
                 } catch (e: Exception) {
                     println("Error processing change stream document: ${e.message}")
                     e.printStackTrace()
-                    currentList // Return current list on error
+                    currentResponse
                 }
             }
-            .distinctUntilChanged() // Only emit when the list actually changes
-            .onStart {
-                println("Starting change stream for user $userId")
-            }
-            .onEach { chatRooms ->
-                println("Emitting ${chatRooms.size} chat rooms for user $userId")
-            }
-            .catch { e ->
-                println("Error in change stream for user $userId: ${e.message}")
-                e.printStackTrace()
-                // Get fresh data from database
-                try {
-                    val freshData = getInitialPersonalChats(userId)
-                    emit(freshData)
-                } catch (dbError: Exception) {
-                    println("Failed to get fresh data: ${dbError.message}")
-                    emit(emptyList())
-                }
-            }
+            .distinctUntilChanged()
             .flowOn(Dispatchers.IO)
     }
 

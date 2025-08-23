@@ -12,17 +12,26 @@ package com.aatech.database.mongodb.repository
 
 import com.aatech.database.mongodb.model.Message
 import com.aatech.database.mongodb.model.PersonalChatRoom
+import com.aatech.database.utils.PaginatedResponse
+import com.aatech.database.utils.PaginationRequest
 import kotlinx.coroutines.flow.Flow
 
 interface PersonChatRepository {
     suspend fun createChat(model: PersonalChatRoom): String
 
-    suspend fun getInitialPersonalChats(userID: String): List<PersonalChatRoom>
+    suspend fun getInitialPersonalChats(
+        userID: String,
+        paginationRequest: PaginationRequest
+    ): PaginatedResponse<PersonalChatRoom>
 
-    suspend fun addChatEntry(
-        model: Message
-    ): String
+    suspend fun addChatEntry(model: Message): String
 
-    fun watchPersonalChats(userId: String): Flow<List<PersonalChatRoom>>
-    fun watchChatEntries(personalChatRoomId: String): Flow<List<Message>>
+    fun watchPersonalChats(
+        userId: String,
+        paginationRequest: PaginationRequest
+    ): Flow<PaginatedResponse<PersonalChatRoom>>
+
+    fun watchChatEntries(
+        personalChatRoomId: String
+    ): Flow<List<Message>>
 }

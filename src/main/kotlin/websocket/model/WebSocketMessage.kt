@@ -16,6 +16,7 @@
 package com.aatech.websocket.model
 
 import com.aatech.database.mongodb.model.PersonalChatRoom
+import com.aatech.database.utils.PaginatedResponse
 import io.ktor.websocket.*
 import kotlinx.serialization.Serializable
 
@@ -36,7 +37,7 @@ data class WebSocketMessage<T>(
 
 @Serializable
 data class ChatRoomsUpdateData(
-    val chatRooms: List<PersonalChatRoom>
+    val chatRooms: PaginatedResponse<PersonalChatRoom>
 )
 
 data class PersonalChatConnection(

@@ -20,6 +20,7 @@ import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.mongodb.repository.PersonChatRepository
 import com.aatech.database.mongodb.repository.impl.PersonChatRepositoryImp
 import com.aatech.database.mysql.repository.user.UserLogInRepository
+import com.aatech.database.utils.PaginationRequest
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
@@ -55,7 +56,7 @@ fun Routing.getPersonalChatsRoute(
                     return@checkDeviceIntegrity
                 }
                 val connectionManager = DaggerMongoDbComponent.create().getPersonChatRoomConnectionManager()
-                connectionManager.addConnection(userId, this)
+                connectionManager.addConnection(userId, paginationRequest = PaginationRequest(),this)
                 try {
                     for (frame in incoming) {
                         when (frame) {
