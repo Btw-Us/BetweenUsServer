@@ -51,6 +51,8 @@ enum class SendOrAcceptFriendRequestType {
 @Serializable
 @SerialName("SendOrAcceptFriendRequest")
 data class SendOrAcceptFriendRequest(
+    val title: String,
+    val body: String,
     val senderId: String,
     val receiverId: String,
     val senderName: String,
