@@ -20,8 +20,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 
-//TODO:Re-think the structure of NotificationModel 
-
 @Serializable
 data class NotificationModel(
     val message: MessageSend
@@ -41,7 +39,6 @@ sealed interface NotificationData {
     val body: String
 }
 
-
 @Serializable
 enum class SendOrAcceptFriendRequestType {
     SEND, ACCEPT
@@ -60,8 +57,13 @@ data class SendOrAcceptFriendRequestNotificationData(
     override val notificationId: String,
 ) : NotificationData
 
-
-
+@Serializable
+@SerialName("CancelNotification")
+data class CancelNotificationData(
+    override val notificationId: String,
+    override val title: String,
+    override val body: String
+) : NotificationData
 
 fun NotificationModel.toMessage(): Message = Message.builder().apply {
     if (message.to != null) setToken(message.to)
@@ -79,6 +81,11 @@ fun NotificationModel.toMessage(): Message = Message.builder().apply {
                     putData("senderName", senderName)
                     putData("senderImage", senderImage)
                     putData("actionType", actionType.name)
+                    putData("notificationId", notificationId)
+                }
+
+                is CancelNotificationData -> {
+                    putData("type", "CancelNotification")
                     putData("notificationId", notificationId)
                 }
             }
@@ -125,8 +132,24 @@ class NotificationBuilder {
         )
     }
 
+    class CancelNotificationBuilder {
+        private var notificationId: String = ""
+
+        fun notificationId(notificationId: String) = apply { this.notificationId = notificationId }
+
+        fun buildCancelNotificationData() = CancelNotificationData(
+            notificationId = notificationId,
+            title = "",
+            body = ""
+        )
+    }
+
     fun setSendFriendRequestData(block: SendFriendRequestBuilder.() -> Unit) = apply {
         this.data = SendFriendRequestBuilder().apply(block).buildSendFriendRequestData()
+    }
+
+    fun setCancelNotificationData(block: CancelNotificationBuilder.() -> Unit) = apply {
+        this.data = CancelNotificationBuilder().apply(block).buildCancelNotificationData()
     }
 
 

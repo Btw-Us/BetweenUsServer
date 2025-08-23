@@ -165,6 +165,17 @@ fun Routing.sendFriendRequest(
                                 }
                                 .buildToMessage()
                         )
+                    } else {
+                        val userToken = repository.getUserTokenById(body.receiverId)
+                            ?: throw IllegalArgumentException("User details not found for ID: ${body.requesterId}")
+                        fcmModule.sendMessage(
+                            NotificationBuilder()
+                                .to(userToken)
+                                .setCancelNotificationData {
+                                    notificationId(body.requesterId.hashCode().toString())
+                                }
+                                .buildToMessage()
+                        )
                     }
                     call.respond(HttpStatusCode.Created, message)
                 } catch (_: ExposedSQLException) {
