@@ -17,7 +17,7 @@
 package com.aatech.plugin
 
 import com.aatech.fcm.NotificationData
-import com.aatech.fcm.SendOrAcceptFriendRequest
+import com.aatech.fcm.SendOrAcceptFriendRequestNotificationData
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -31,7 +31,7 @@ fun Application.configureSerialization() {
         json(Json {
             serializersModule = SerializersModule {
                 polymorphic(NotificationData::class) {
-                    subclass(SendOrAcceptFriendRequest::class)
+                    subclass(SendOrAcceptFriendRequestNotificationData::class)
                 }
             }
             prettyPrint = true

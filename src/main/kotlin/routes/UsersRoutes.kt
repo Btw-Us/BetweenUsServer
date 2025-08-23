@@ -27,7 +27,6 @@ import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import com.aatech.database.mysql.repository.user.UserLogInRepository
 import com.aatech.fcm.NotificationBuilder
 import com.aatech.fcm.SendMessageService
-import com.aatech.fcm.toMessage
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
@@ -155,19 +154,20 @@ fun Routing.sendFriendRequest(
                         fcmModule.sendMessage(
                             NotificationBuilder()
                                 .to(userToken)
-                                .title("Friend Request")
-                                .body("${userDetails.username} send you a friend request 🥂.")
-                                .setData(
-                                    senderId = body.requesterId,
-                                    receiverId = body.receiverId,
-                                    senderName = userDetails.username,
-                                    senderImage = userDetails.profilePicture ?: ""
-                                )
-                                .build().toMessage()
+                                .setSendFriendRequestData {
+                                    title("New Friend Request")
+                                    body("${userDetails.username} sent you a friend request. 🤝")
+                                    senderId(body.requesterId)
+                                    receiverId(body.receiverId)
+                                    senderName(userDetails.username)
+                                    senderImage(userDetails.profilePicture ?: "")
+                                    notificationId(body.requesterId.hashCode())
+                                }
+                                .buildToMessage()
                         )
                     }
                     call.respond(HttpStatusCode.Created, message)
-                } catch (e: ExposedSQLException) {
+                } catch (_: ExposedSQLException) {
                     call.respond(
                         HttpStatusCode.Conflict,
                         createErrorResponse(
@@ -326,15 +326,15 @@ fun Routing.respondToFriendRequest(
                             fcmModule.sendMessage(
                                 NotificationBuilder()
                                     .to(friendsToken)
-                                    .title("Friend Request Accepted")
-                                    .body("${userDetails.username} accepted your friend request 🥂.")
-                                    .setData(
-                                        senderId = body.userId,
-                                        receiverId = body.friendId,
-                                        senderName = userDetails.username,
-                                        senderImage = userDetails.profilePicture ?: ""
-                                    )
-                                    .build().toMessage()
+                                    .setSendFriendRequestData {
+                                        title("Friend Request Accepted")
+                                        body("${userDetails.username} accepted your friend request 🥂.")
+                                        senderId(body.userId)
+                                        receiverId(body.friendId)
+                                        senderName(userDetails.username)
+                                        senderImage(userDetails.profilePicture ?: "")
+                                    }
+                                    .buildToMessage()
                             )
                         }
                     }

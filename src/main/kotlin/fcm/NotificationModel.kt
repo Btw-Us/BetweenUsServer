@@ -16,9 +16,11 @@
 package com.aatech.fcm
 
 import com.google.firebase.messaging.Message
-import com.google.firebase.messaging.Notification
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+
+
+//TODO:Re-think the structure of NotificationModel 
 
 @Serializable
 data class NotificationModel(
@@ -29,18 +31,15 @@ data class NotificationModel(
 data class MessageSend(
     val topic: String? = null,
     val to: String? = null,
-    val notification: NotificationSend,
     val data: NotificationData? = null,
 )
 
 @Serializable
-data class NotificationSend(
-    val title: String,
-    val body: String,
-)
-
-@Serializable
-sealed interface NotificationData
+sealed interface NotificationData {
+    val notificationId: String
+    val title: String
+    val body: String
+}
 
 
 @Serializable
@@ -50,86 +49,96 @@ enum class SendOrAcceptFriendRequestType {
 
 @Serializable
 @SerialName("SendOrAcceptFriendRequest")
-data class SendOrAcceptFriendRequest(
-    val title: String,
-    val body: String,
+data class SendOrAcceptFriendRequestNotificationData(
+    override val title: String,
+    override val body: String,
     val senderId: String,
     val receiverId: String,
     val senderName: String,
     val senderImage: String,
     val actionType: SendOrAcceptFriendRequestType = SendOrAcceptFriendRequestType.SEND,
+    override val notificationId: String,
 ) : NotificationData
 
 
-fun NotificationModel.toMessage(): Message =
-    Message.builder()
-        .setNotification(
-            Notification.builder()
-                .setTitle(message.notification.title)
-                .setBody(message.notification.body)
-                .setImage(
-                    if (message.data == SendOrAcceptFriendRequest)
-                        (message.data as SendOrAcceptFriendRequest).senderImage
-                    else null
-                )
-                .build()
-        ).apply {
-            if (message.to != null)
-                setToken(message.to)
-            else
-                setTopic(message.topic)
-        }
-        .apply {
-            with(message.data) {
-                if (this != null) {
-                    when (this) {
-                        is SendOrAcceptFriendRequest -> {
-                            putData("type", "SendOrAcceptFriendRequest")
-                            putData("senderId", senderId)
-                            putData("receiverId", receiverId)
-                            putData("senderName", senderName)
-                            putData("senderImage", senderImage)
-                            putData("actionType", actionType.name)
-                        }
-                    }
+
+
+fun NotificationModel.toMessage(): Message = Message.builder().apply {
+    if (message.to != null) setToken(message.to)
+    else setTopic(message.topic)
+}.apply {
+    with(message.data) {
+        if (this != null) {
+            when (this) {
+                is SendOrAcceptFriendRequestNotificationData -> {
+                    putData("type", "SendOrAcceptFriendRequest")
+                    putData("title", title)
+                    putData("body", body)
+                    putData("senderId", senderId)
+                    putData("receiverId", receiverId)
+                    putData("senderName", senderName)
+                    putData("senderImage", senderImage)
+                    putData("actionType", actionType.name)
+                    putData("notificationId", notificationId)
                 }
             }
         }
-        .build()
+    }
+}.build()
 
 class NotificationBuilder {
     private var userToken: String? = null
-    private var topic: String? = null
-    private var title: String = ""
-    private var body: String = ""
+    private var topicOrToken: String? = null
     private var data: NotificationData? = null
 
     fun to(token: String) = apply { this.userToken = token }
-    fun topic(topic: String) = apply { this.topic = topic }
-    fun title(title: String) = apply { this.title = title }
-    fun body(body: String) = apply { this.body = body }
+    fun topic(topic: String) = apply { this.topicOrToken = topic }
     fun data(data: NotificationData) = apply { this.data = data }
 
-    fun setData(senderId: String, receiverId: String, senderName: String, senderImage: String = "") = apply {
-        this.data = SendOrAcceptFriendRequest(
+    class SendFriendRequestBuilder {
+        private var title: String = ""
+        private var body: String = ""
+        private var senderId: String = ""
+        private var receiverId: String = ""
+        private var senderName: String = ""
+        private var senderImage: String = ""
+        private var notificationId: Int = (0..100000).random()
+
+
+        fun title(title: String) = apply { this.title = title }
+        fun body(body: String) = apply { this.body = body }
+        fun senderId(senderId: String) = apply { this.senderId = senderId }
+        fun receiverId(receiverId: String) = apply { this.receiverId = receiverId }
+        fun senderName(senderName: String) = apply { this.senderName = senderName }
+        fun senderImage(senderImage: String) = apply { this.senderImage = senderImage }
+        fun notificationId(notificationId: Int) = apply { this.notificationId = notificationId }
+
+        fun buildSendFriendRequestData() = SendOrAcceptFriendRequestNotificationData(
+            title = title,
+            body = body,
             senderId = senderId,
             receiverId = receiverId,
             senderName = senderName,
             senderImage = senderImage,
-            actionType = SendOrAcceptFriendRequestType.SEND
+            actionType = SendOrAcceptFriendRequestType.SEND,
+            notificationId = notificationId.toString()
         )
     }
 
+    fun setSendFriendRequestData(block: SendFriendRequestBuilder.() -> Unit) = apply {
+        this.data = SendFriendRequestBuilder().apply(block).buildSendFriendRequestData()
+    }
+
+
     fun build(): NotificationModel {
+        if (userToken == null && topicOrToken == null) throw IllegalArgumentException("Either userToken or topic must be provided")
+        if (data == null) throw IllegalArgumentException("Notification data must be provided")
         return NotificationModel(
             message = MessageSend(
-                to = userToken,
-                topic = topic,
-                notification = NotificationSend(title = title, body = body),
-                data = data
+                to = userToken, topic = topicOrToken, data = data
             )
         )
     }
-}
 
-fun notification() = NotificationBuilder()
+    fun buildToMessage(): Message = build().toMessage()
+}
