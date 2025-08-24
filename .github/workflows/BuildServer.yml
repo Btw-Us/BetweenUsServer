@@ -1,0 +1,26 @@
+name: Deploy to DigitalOcean
+on:
+  workflow_dispatch:   
+  push:              
+    branches: ["master"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Run SSH commands on DigitalOcean
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{secrets.SSH_HOST}}
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            echo "Connected to DigitalOcean!"
+            cd BetweenUsServer/
+            ls -la
+            docker compose down 
+            git pull origin master
+            docker compose up --build -d
