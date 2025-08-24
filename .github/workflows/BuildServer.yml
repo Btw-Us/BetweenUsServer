@@ -4,29 +4,22 @@ on:
   # push:              # 👈 keep this if you ALSO want auto-deploy on push
   #   branches: ["main"]
 
-jobs:
+obs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
-      
-      - name: Setup SSH Agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # If your key has a passphrase, also add:
-          # ssh-passphrase: ${{ secrets.SSH_PASSPHRASE }}
-      
-      - name: Run SSH commands on DigitalOcean
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          use_insecure_cipher: false
-          # Tell appleboy/ssh-action to use the SSH agent
-          key_path: ""  # Empty key_path forces it to use SSH agent
-          script: |
-            echo "Connected to DigitalOcean!"
-            cd BetweenUsServer/
-            ls -la
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H your.server.com >> ~/.ssh/known_hosts
+
+      - name: Connect & Run Commands
+        run: |
+          ssh -o StrictHostKeyChecking=no root@139.59.24.34 "echo 'Connected via GitHub Actions!' && whoami && hostname"
+          
