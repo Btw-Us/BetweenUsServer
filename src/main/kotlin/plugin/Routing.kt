@@ -37,7 +37,6 @@ fun Application.configureRouting(
         allPersonalChatRoutes()
         allLogInRoutes()
         allUsersRoutes()
-        sendTestNotification()
         firebaseMessagingRoutes()
     }
 }
