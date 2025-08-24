@@ -38,17 +38,21 @@ class PersonChatRoomConnectionManager @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
     private val connections = ConcurrentHashMap<String, MutableSet<PersonalChatConnection>>()
     private val userWatchJobs = ConcurrentHashMap<String, Job>()
+    private val userPaginationSettings = ConcurrentHashMap<String, PaginationRequest>()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     suspend fun addConnection(userId: String, paginationRequest: PaginationRequest, session: WebSocketSession) {
         val connection = PersonalChatConnection(session, userId)
 
         connections.computeIfAbsent(userId) { ConcurrentHashMap.newKeySet() }.add(connection)
+        userPaginationSettings[userId] = paginationRequest
         println("User $userId connected. Total connections: ${getTotalConnections()}")
 
         // Send initial data
         sendInitialChatRooms(
-            userId = userId, paginationRequest = paginationRequest, session = session
+            userId = userId,
+            paginationRequest = paginationRequest,
+            session = session
         )
 
         // Start watching for changes if not already watching
@@ -57,12 +61,37 @@ class PersonChatRoomConnectionManager @Inject constructor(
         }
     }
 
+    suspend fun updateConnectionPagination(
+        userId: String,
+        paginationRequest: PaginationRequest,
+        session: WebSocketSession
+    ) {
+        // Update pagination settings for the user
+        userPaginationSettings[userId] = paginationRequest
+
+        // Restart watching with new pagination
+        userWatchJobs[userId]?.cancel()
+
+        // Send updated data with new pagination
+        sendInitialChatRooms(
+            userId = userId,
+            paginationRequest = paginationRequest,
+            session = session
+        )
+
+        // Restart watching
+        startWatchingUser(userId, paginationRequest)
+
+        println("Updated pagination for user $userId - Page: ${paginationRequest.page}, PageSize: ${paginationRequest.pageSize}")
+    }
+
     suspend fun removeConnection(userId: String, session: WebSocketSession) {
         connections[userId]?.removeIf { it.session == session }
 
         // Clean up empty sets
         if (connections[userId]?.isEmpty() == true) {
             connections.remove(userId)
+            userPaginationSettings.remove(userId)
             // Cancel watching if no more connections for this user
             userWatchJobs[userId]?.cancel()
             userWatchJobs.remove(userId)
@@ -84,6 +113,7 @@ class PersonChatRoomConnectionManager @Inject constructor(
                 data = ChatRoomsUpdateData(chatRooms)
             )
             session.send(Frame.Text(json.encodeToString(message)))
+            println("Sent initial chat rooms to user $userId with pagination - Page: ${paginationRequest.page}, PageSize: ${paginationRequest.pageSize}")
         } catch (e: Exception) {
             println("Error sending initial chat rooms to user $userId: ${e.message}")
             e.printStackTrace()
@@ -94,7 +124,7 @@ class PersonChatRoomConnectionManager @Inject constructor(
         userId: String,
         paginationRequest: PaginationRequest
     ) {
-        println("Starting to watch changes for user $userId")
+        println("Starting to watch changes for user $userId with pagination - Page: ${paginationRequest.page}, PageSize: ${paginationRequest.pageSize}")
 
         val job = scope.launch {
             var retryCount = 0
@@ -171,8 +201,7 @@ class PersonChatRoomConnectionManager @Inject constructor(
 
     // Method to handle chat room updates from external sources
     suspend fun handleChatRoomUpdate(
-        chatRoom: PersonalChatRoom,
-        paginationRequest: PaginationRequest
+        chatRoom: PersonalChatRoom
     ) {
         println("Handling chat room update: ${chatRoom.id} between ${chatRoom.userId} and ${chatRoom.friendId}")
 
@@ -182,6 +211,7 @@ class PersonChatRoomConnectionManager @Inject constructor(
         affectedUsers.forEach { userId ->
             if (connections.containsKey(userId)) {
                 try {
+                    val paginationRequest = userPaginationSettings[userId] ?: PaginationRequest()
                     val userChatRooms = repository.getInitialPersonalChats(userId, paginationRequest)
                     broadcastToUser(
                         userId,
@@ -196,50 +226,14 @@ class PersonChatRoomConnectionManager @Inject constructor(
     }
 
     // Method to handle new messages (this would trigger chat room updates)
-    suspend fun handleNewMessage(
-        chatRoom: PersonalChatRoom,
-        paginationRequest: PaginationRequest
-    ) {
+    suspend fun handleNewMessage(chatRoom: PersonalChatRoom) {
         println("Handling new message in chat room: ${chatRoom.id}")
-        handleChatRoomUpdate(chatRoom, paginationRequest)
+        handleChatRoomUpdate(chatRoom)
     }
 
     fun getTotalConnections(): Int = connections.values.sumOf { it.size }
 
     fun getConnectedUsers(): Set<String> = connections.keys.toSet()
-
-//    suspend fun broadcastToAllUsers(messageType: String, data: ChatRoomsUpdateData) {
-//        val message = WebSocketMessage(type = WebSocketEventSendingDataType.UPDATE_DATA, data = data)
-//        val messageJson = json.encodeToString(message)
-//
-//        connections.values.flatten().forEach { connection ->
-//            try {
-//                if (connection.session.isActive) {
-//                    connection.session.send(Frame.Text(messageJson))
-//                }
-//            } catch (e: Exception) {
-//                println("Error broadcasting to user ${connection.userId}: ${e.message}")
-//            }
-//        }
-//    }
-//
-//    suspend fun cleanup() {
-//        println("Cleaning up connection manager")
-//        userWatchJobs.values.forEach { it.cancel() }
-//        userWatchJobs.clear()
-//        connections.clear()
-//        scope.cancel()
-//    }
-//
-//    // Method to manually trigger updates (useful for testing)
-//    suspend fun triggerUpdateForUser(userId: String) {
-//        try {
-//            val chatRooms = repository.getInitialPersonalChats(userId)
-//            broadcastToUser(userId, WebSocketEventSendingDataType.TRIGGER_EVENT, ChatRoomsUpdateData(chatRooms))
-//        } catch (e: Exception) {
-//            println("Error triggering manual update for user $userId: ${e.message}")
-//        }
-//    }
 
     // Health check methods
     fun getConnectionInfo(): Map<String, Any> {
@@ -247,7 +241,13 @@ class PersonChatRoomConnectionManager @Inject constructor(
             "totalConnections" to getTotalConnections(),
             "connectedUsers" to getConnectedUsers(),
             "activeWatchJobs" to userWatchJobs.keys,
-            "connectionsPerUser" to connections.mapValues { it.value.size }
+            "connectionsPerUser" to connections.mapValues { it.value.size },
+            "userPaginationSettings" to userPaginationSettings
         )
+    }
+
+    // Method to get current pagination for a user
+    fun getUserPagination(userId: String): PaginationRequest? {
+        return userPaginationSettings[userId]
     }
 }

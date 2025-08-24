@@ -28,6 +28,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
+import kotlinx.serialization.json.Json
 
 
 fun Routing.allPersonalChatRoutes() {
@@ -47,8 +48,9 @@ fun Routing.getPersonalChatsRoute(
     authenticate("auth-bearer") {
         webSocket("${PersonalChatRoutes.GetAllChats.path}/{userId}") {
             val userId = call.parameters["userId"]
-            val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-            val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20
+            val initialPage = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+            val initialPageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20
+
             checkDeviceIntegrity(
                 currentUserId = userId,
                 userLogInRepository = userLogInRepository
@@ -57,31 +59,61 @@ fun Routing.getPersonalChatsRoute(
                     close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "User ID is required"))
                     return@checkDeviceIntegrity
                 }
+
                 val connectionManager = DaggerMongoDbComponent.create().getPersonChatRoomConnectionManager()
+
+                // Add connection with initial pagination
                 connectionManager.addConnection(
-                    userId, paginationRequest = PaginationRequest(
-                        page = page,
-                        pageSize = pageSize
-                    ), this
+                    userId,
+                    paginationRequest = PaginationRequest(
+                        page = initialPage,
+                        pageSize = initialPageSize
+                    ),
+                    this
                 )
+
                 try {
                     for (frame in incoming) {
                         when (frame) {
                             is Frame.Text -> {
+                                try {
+                                    val messageText = frame.readText()
+                                    println("Received message from user $userId: $messageText")
+
+                                    // Parse incoming pagination request
+                                    val json = Json { ignoreUnknownKeys = true }
+                                    val paginationRequest = json.decodeFromString<PaginationRequest>(messageText)
+
+                                    println("Updating pagination for user $userId - Page: ${paginationRequest.page}, PageSize: ${paginationRequest.pageSize}")
+
+
+                                    connectionManager.updateConnectionPagination(userId, paginationRequest, this)
+
+                                } catch (e: Exception) {
+                                    println("Error parsing pagination request from user $userId: ${e.message}")
+                                    e.printStackTrace()
+
+                                    // Send error response back to client
+                                    send(Frame.Text("""{"error": "Invalid pagination request format"}"""))
+                                }
                             }
 
                             is Frame.Close -> {
+                                println("WebSocket connection closed for user $userId")
                                 break
                             }
 
                             else -> {
+                                println("Received unexpected frame type from user $userId")
                             }
                         }
                     }
                 } catch (e: Exception) {
                     println("Error in WebSocket connection for user $userId: ${e.message}")
+                    e.printStackTrace()
                 } finally {
                     connectionManager.removeConnection(userId, this)
+                    println("Connection removed for user $userId")
                 }
             }
         }
