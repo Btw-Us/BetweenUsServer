@@ -1,0 +1,25 @@
+name: Deploy to DigitalOcean
+
+on:
+  workflow_dispatch:   # 👈 manual trigger
+  # push:              # 👈 keep this if you ALSO want auto-deploy on push
+  #   branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run SSH commands on DigitalOcean
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "Connected to DigitalOcean!"
+            cd  BetweenUsServer/
+            ls -la
