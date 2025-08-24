@@ -4,22 +4,24 @@ on:
   # push:              # 👈 keep this if you ALSO want auto-deploy on push
   #   branches: ["main"]
 
-obs:
+jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H your.server.com >> ~/.ssh/known_hosts
-
-      - name: Connect & Run Commands
-        run: |
-          ssh -o StrictHostKeyChecking=no root@139.59.24.34 "echo 'Connected via GitHub Actions!' && whoami && hostname"
-          
+        
+      - name: Run SSH commands on DigitalOcean
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 139.59.24.34
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            echo "Connected to DigitalOcean!"
+            cd BetweenUsServer/
+            ls -la
+            # Add your deployment commands here
+            # git pull origin main
+            # npm install
+            # pm2 restart your-app
