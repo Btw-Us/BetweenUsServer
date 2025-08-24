@@ -107,7 +107,7 @@ class PersonChatRoomConnectionManager @Inject constructor(
         session: WebSocketSession
     ) {
         try {
-            val chatRooms = repository.getInitialPersonalChats(userId, paginationRequest)
+            val chatRooms = repository.getChats(userId, paginationRequest)
             val message = WebSocketMessage(
                 type = WebSocketEventSendingDataType.INITIAL_DATA,
                 data = ChatRoomsUpdateData(chatRooms)
@@ -212,7 +212,7 @@ class PersonChatRoomConnectionManager @Inject constructor(
             if (connections.containsKey(userId)) {
                 try {
                     val paginationRequest = userPaginationSettings[userId] ?: PaginationRequest()
-                    val userChatRooms = repository.getInitialPersonalChats(userId, paginationRequest)
+                    val userChatRooms = repository.getChats(userId, paginationRequest)
                     broadcastToUser(
                         userId,
                         WebSocketEventSendingDataType.UPDATE_DATA,

@@ -28,25 +28,91 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 
 
 fun Routing.allPersonalChatRoutes() {
     val userLogInRepository = MySqlModule().provideUserLogInRepository()
-    getPersonalChatsRoute(
+    val personalChatRepository = DaggerMongoDbComponent.create().getPersonChatRepository()
+    watchPersonalChats(
         userLogInRepository = userLogInRepository
     )
     personalChatRoutes(
         userLogInRepository = userLogInRepository
     )
+    getChats(
+        personalChatRepository
+    )
+
 }
 
 
-fun Routing.getPersonalChatsRoute(
+fun Routing.getChats(personalChatRepository: PersonChatRepository) {
+    authenticate("auth-bearer") {
+        get("${PersonalChatRoutes.GetChats.path}/{userId}") {
+            val userId = call.parameters["userId"] ?: ""
+            if (userId.isBlank()) {
+                call.respond(
+                    status = HttpStatusCode.BadRequest,
+                    message = createErrorResponse(
+                        message = "Bad Request",
+                        code = HttpStatusCode.BadRequest.value,
+                        details = "User ID is required."
+                    )
+                )
+                return@get
+            }
+            checkAuth { authParam ->
+                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull()
+                    ?: 20
+                if (authParam.userId != userId) {
+                    call.respond(
+                        status = HttpStatusCode.BadRequest,
+                        message = createErrorResponse(
+                            message = "Bad Request",
+                            code = HttpStatusCode.BadRequest.value,
+                            details = "User ID in query parameter does not match authenticated user ID."
+                        )
+                    )
+                    return@checkAuth
+                }
+                try {
+                    val paginatedChats = runBlocking {
+                        personalChatRepository.getChats(
+                            userID = userId,
+                            paginationRequest = PaginationRequest(
+                                page = page,
+                                pageSize = pageSize
+                            )
+                        )
+                    }
+                    call.respond(
+                        status = HttpStatusCode.OK,
+                        message = paginatedChats
+                    )
+                } catch (e: Exception) {
+                    call.respond(
+                        status = HttpStatusCode.InternalServerError,
+                        message = createErrorResponse(
+                            message = "Internal Server Error",
+                            code = HttpStatusCode.InternalServerError.value,
+                            details = e.message ?: "An unexpected error occurred."
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+fun Routing.watchPersonalChats(
     userLogInRepository: UserLogInRepository,
 ) {
     authenticate("auth-bearer") {
-        webSocket("${PersonalChatRoutes.GetAllChats.path}/{userId}") {
+        webSocket("${PersonalChatRoutes.WatchPersonalChats.path}/{userId}") {
             val userId = call.parameters["userId"]
             val initialPage = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
             val initialPageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20
