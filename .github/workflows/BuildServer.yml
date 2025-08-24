@@ -1,5 +1,4 @@
 name: Deploy to DigitalOcean
-
 on:
   workflow_dispatch:   # 👈 manual trigger
   # push:              # 👈 keep this if you ALSO want auto-deploy on push
@@ -8,23 +7,17 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup SSH Agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # If your key has a passphrase, also add:
-          ssh-passphrase: ${{ secrets.SSH_PASSPHRASE }}
-
+      
       - name: Run SSH commands on DigitalOcean
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             echo "Connected to DigitalOcean!"
             cd BetweenUsServer/
