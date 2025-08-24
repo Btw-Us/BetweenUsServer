@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.Flow
 interface PersonChatRepository {
     suspend fun createChat(model: PersonalChatRoom): String
 
-    suspend fun getInitialPersonalChats(
+    suspend fun getChats(
         userID: String,
         paginationRequest: PaginationRequest
     ): PaginatedResponse<PersonalChatRoom>

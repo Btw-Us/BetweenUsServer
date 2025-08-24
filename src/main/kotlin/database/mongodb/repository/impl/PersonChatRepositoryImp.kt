@@ -88,7 +88,7 @@ class PersonChatRepositoryImp(
         return PaginatedResponse(chatRooms, paginationInfo)
     }
 
-    override suspend fun getInitialPersonalChats(
+    override suspend fun getChats(
         userID: String,
         paginationRequest: PaginationRequest
     ): PaginatedResponse<PersonalChatRoom> {
