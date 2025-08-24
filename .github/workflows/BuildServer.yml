@@ -1,8 +1,8 @@
 name: Deploy to DigitalOcean
 on:
-  workflow_dispatch:   # 👈 manual trigger
-  # push:              # 👈 keep this if you ALSO want auto-deploy on push
-  #   branches: ["main"]
+  workflow_dispatch:   
+  push:              
+    branches: ["master"]
 
 jobs:
   deploy:
@@ -21,7 +21,6 @@ jobs:
             echo "Connected to DigitalOcean!"
             cd BetweenUsServer/
             ls -la
-            # Add your deployment commands here
-            # git pull origin main
-            # npm install
-            # pm2 restart your-app
+            docker compose down 
+            git pull origin master
+            docker compose up --build -d
