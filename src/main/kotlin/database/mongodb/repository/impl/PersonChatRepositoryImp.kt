@@ -20,6 +20,7 @@ import com.aatech.plugin.configureMongoDB
 import com.aatech.utils.MongoDbCollectionNames
 import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
+import com.mongodb.client.model.Sorts
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
@@ -66,19 +67,25 @@ class PersonChatRepositoryImp(
         // Get total count
         val totalItems = personalChatCollection.countDocuments(filter)
 
-
-        // Get paginated data
+        // Get paginated data with proper sorting
         val chatRooms = personalChatCollection
             .find(filter)
+            .sort(
+                Sorts.orderBy(
+                    Sorts.descending("lastMessageTime")
+                )
+            )
             .skip(paginationRequest.offset)
-            .limit(paginationRequest.limit)
+            .limit(paginationRequest.limit) // Use limit, not pageSize
             .toList()
 
-        val totalPages = ((totalItems + paginationRequest.pageSize - 1) / paginationRequest.pageSize).toInt()
+        // Fix: Use consistent pageSize from paginationRequest.limit
+        val totalPages = if (totalItems == 0L) 1
+        else ((totalItems + paginationRequest.limit - 1) / paginationRequest.limit).toInt()
 
         val paginationInfo = PaginationInfo(
             currentPage = paginationRequest.page,
-            pageSize = paginationRequest.pageSize,
+            pageSize = paginationRequest.limit, // Use limit for consistency
             totalItems = totalItems,
             totalPages = totalPages,
             hasNext = paginationRequest.page < totalPages,
