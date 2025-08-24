@@ -14,7 +14,7 @@ jobs:
       - name: Run SSH commands on DigitalOcean
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 139.59.24.34
+          host: ${{secrets.SSH_HOST}}
           username: root
           password: ${{ secrets.SSH_PASSWORD }}
           script: |
