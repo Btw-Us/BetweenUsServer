@@ -1,4 +1,5 @@
 name: Re-Deploy(Without Build) to Digital Ocean 🛫
+
 on:
   workflow_dispatch:
   push:
@@ -13,13 +14,54 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run SSH commands on DigitalOcean
+        id: redeploy_step
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: root
           password: ${{ secrets.SSH_PASSWORD }}
           script: |
-            echo "Connected to DigitalOcean!"
+            echo "✅ Connected to DigitalOcean!"
             cd BetweenUsServer/
+            echo "♻️ Restarting containers (without rebuild)..."
             docker compose down
             docker compose up -d
+            echo "✅ Re-Deploy Finished"
+
+            echo "📊 Gathering System Info..."
+            echo "---- Disk Usage ----"
+            df -h
+            echo "---- Memory Usage ----"
+            free -m
+            echo "---- CPU Load ----"
+            uptime
+            echo "---- Top Processes ----"
+            ps aux --sort=-%mem | head -n 10
+            echo "---- Docker Status ----"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            echo "---- Last 20 Logs ----"
+            docker compose logs --tail=20
+
+  report:
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always()
+    steps:
+      - name: Deployment Report
+        run: |
+          echo "📢 Re-Deploy Report"
+          echo "---------------------"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Commit: $GITHUB_SHA"
+          echo "Commit Message: ${{ github.event.head_commit.message }}"
+          echo "Triggered by: $GITHUB_ACTOR"
+          echo "Deploy Type: re-deploy (without build)"
+          echo "---------------------"
+          echo "🔎 Job Results"
+          echo "Deploy Job: ${{ needs.deploy.result }}"
+
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "✅ Re-Deployment Successful!"
+          else
+            echo "❌ Re-Deployment Failed!"
+          fi
