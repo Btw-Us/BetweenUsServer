@@ -61,4 +61,11 @@ interface UserInteractionRepository {
     suspend fun getUserTokenById(
         userId: String
     ): String?
+
+
+    suspend fun insertChatRoomId(
+        userId: String,
+        friendId: String,
+        chatRoomId: String
+    ): Boolean
 }

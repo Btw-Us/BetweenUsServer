@@ -19,19 +19,18 @@ import com.aatech.database.mongodb.model.Message
 import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.mongodb.repository.PersonChatRepository
 import com.aatech.database.mysql.model.UserFriendsTable
-import com.aatech.database.mysql.model.UserTable
+import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import com.aatech.database.utils.mysqlAndMongoTransactions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.bson.types.ObjectId
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.or
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 
 data class CreateChatRoomUseCase(
-    private val personalChatRepository: PersonChatRepository
+    private val personalChatRepository: PersonChatRepository,
+    private val userInteraction: UserInteractionRepository
 ) {
     suspend operator fun invoke(
         userId: String,
@@ -39,32 +38,24 @@ data class CreateChatRoomUseCase(
         message: String
     ) = withContext(Dispatchers.IO) {
         val chatRoomId = ObjectId().toString()
-        val userName = UserTable.select(listOf(UserTable.fullName))
-            .where { UserTable.uuid eq userId }
-            .mapNotNull {
-                it[UserTable.fullName]
-            }.singleOrNull() ?: throw Exception("User not found with id: $userId")
-        val friendsFullName = UserTable.select(listOf(UserTable.fullName))
-            .where { UserTable.uuid eq friendsId }
-            .mapNotNull {
-                it[UserTable.fullName]
-            }.singleOrNull() ?: throw Exception("Friend not found with id: $friendsId")
+        val userName = userInteraction.getUserById(
+            userId
+        )?.fullName ?: throw Exception("User not found")
+
+        val friendsFullName = userInteraction.getUserById(
+            friendsId
+        )?.fullName ?: throw Exception("Friend not found")
 
         mysqlAndMongoTransactions(
             mysqlTransaction = {
-                transaction {
-                    val updated = UserFriendsTable.update(
-                        where = {
-                            ((UserFriendsTable.userId eq userId) and (UserFriendsTable.friendId eq friendsId)) or
-                                    ((UserFriendsTable.userId eq friendsId) and (UserFriendsTable.friendId eq userId))
-                        },
-                    ) {
-                        it[UserFriendsTable.chatRoomPath] = chatRoomId
+                userInteraction.insertChatRoomId(
+                    userId = userId,
+                    friendId = friendsId,
+                    chatRoomId = chatRoomId
+                ).let {
+                    if (!it) {
+                        throw Exception("Failed to insert chat room id")
                     }
-                    if (updated == 0) {
-                        throw Exception("Failed to update chatRoomPath in UserFriendsTable")
-                    }
-                    updated
                 }
             },
             mongoTransaction = {

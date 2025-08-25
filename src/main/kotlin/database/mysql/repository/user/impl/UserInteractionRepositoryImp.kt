@@ -277,6 +277,22 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
         }
     }
 
+    override suspend fun insertChatRoomId(
+        userId: String,
+        friendId: String,
+        chatRoomId: String
+    ): Boolean = withContext(Dispatchers.IO) {
+        transaction {
+            val updatedRows = UserFriendsTable.update({
+                (UserFriendsTable.userId eq userId and (UserFriendsTable.friendId eq friendId)) or
+                        (UserFriendsTable.userId eq friendId and (UserFriendsTable.friendId eq userId))
+            }) {
+                it[UserFriendsTable.chatRoomPath] = chatRoomId
+            }
+            updatedRows > 0
+        }
+    }
+
 
     fun rowToUserAndFriend(
         row: ResultRow,

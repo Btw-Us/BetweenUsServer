@@ -3,7 +3,7 @@
  *
  * This work is the exclusive property of ayaan.
  *
- * Created: August 26, 2025 12:36 AM
+ * Created: August 26, 2025 01:35 AM
  * Author: ayaan
  * Project: BetweenUsServe
  *
@@ -15,6 +15,7 @@
 
 package com.aatech.database.utils
 
+
 sealed class TransactionResult<T, R> {
     data class Success<T, R>(val mysqlResult: T, val mongoResult: R) : TransactionResult<T, R>()
     data class Failure<T, R>(
@@ -24,21 +25,20 @@ sealed class TransactionResult<T, R> {
 }
 
 
-fun <T, R> mysqlAndMongoTransactions(
+suspend fun <T, R> mysqlAndMongoTransactions(
     mysqlTransaction: suspend () -> T,
     mongoTransaction: suspend () -> R,
     rollbackMysql: suspend (T) -> Unit,
     rollbackMongo: suspend (R) -> Unit
-): ImprovedMySqlAndMongoTransactions<T, R> {
-    return ImprovedMySqlAndMongoTransactions(
-        mysqlTransaction,
-        mongoTransaction,
-        rollbackMysql,
-        rollbackMongo
-    )
-}
+) = MySqlAndMongoTransactions(
+    mysqlTransaction,
+    mongoTransaction,
+    rollbackMysql,
+    rollbackMongo
+).execute()
 
-data class ImprovedMySqlAndMongoTransactions<T, R>(
+
+data class MySqlAndMongoTransactions<T, R>(
     private val mysqlTransaction: suspend () -> T,
     private val mongoTransaction: suspend () -> R,
     private val rollbackMysql: suspend (T) -> Unit,

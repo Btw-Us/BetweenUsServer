@@ -17,7 +17,6 @@ package com.aatech.dagger.modules
 
 import com.aatech.database.mongodb.repository.PersonChatRepository
 import com.aatech.database.mongodb.repository.impl.PersonChatRepositoryImp
-import com.aatech.database.usecase.CreateChatRoomUseCase
 import com.aatech.plugin.configureMongoDB
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import dagger.Module
@@ -41,12 +40,5 @@ class MongoDbModule {
     ): PersonChatRepository {
         return PersonChatRepositoryImp(database)
     }
-
-
-    @Provides
-    @Singleton
-    fun provideCreateChatRoomUseCase(
-        personChatRepository: PersonChatRepository
-    ) = CreateChatRoomUseCase(personChatRepository)
 
 }

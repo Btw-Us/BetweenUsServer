@@ -13,14 +13,15 @@ package com.aatech.routes
 import com.aatech.config.api_config.PersonalChatRoutes
 import com.aatech.config.api_config.checkAuth
 import com.aatech.config.api_config.checkDeviceIntegrity
+import com.aatech.config.body.CreatePersonalChatRoomRequest
 import com.aatech.config.response.createErrorResponse
 import com.aatech.dagger.components.DaggerMongoDbComponent
-import com.aatech.dagger.modules.MySqlModule
-import com.aatech.database.mongodb.model.PersonalChatRoom
+import com.aatech.dagger.components.DaggerMySqlComponent
 import com.aatech.database.mongodb.repository.PersonChatRepository
-import com.aatech.database.mongodb.repository.impl.PersonChatRepositoryImp
 import com.aatech.database.mysql.repository.user.UserLogInRepository
+import com.aatech.database.usecase.CreateChatRoomUseCase
 import com.aatech.database.utils.PaginationRequest
+import com.aatech.database.utils.TransactionResult
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
@@ -33,13 +34,17 @@ import kotlinx.serialization.json.Json
 
 
 fun Routing.allPersonalChatRoutes() {
-    val userLogInRepository = MySqlModule().provideUserLogInRepository()
+    val userLogInRepository = DaggerMySqlComponent.create().getUserRepository()
     val personalChatRepository = DaggerMongoDbComponent.create().getPersonChatRepository()
+    val createChatRoomUseCase = CreateChatRoomUseCase(
+        personalChatRepository = personalChatRepository,
+        userInteraction = DaggerMySqlComponent.create().getUserInteractionRepository()
+    )
     watchPersonalChats(
         userLogInRepository = userLogInRepository
     )
     personalChatRoutes(
-        userLogInRepository = userLogInRepository
+        createChatRoomUseCase = createChatRoomUseCase
     )
     getChats(
         personalChatRepository
@@ -54,8 +59,7 @@ fun Routing.getChats(personalChatRepository: PersonChatRepository) {
             val userId = call.parameters["userId"] ?: ""
             if (userId.isBlank()) {
                 call.respond(
-                    status = HttpStatusCode.BadRequest,
-                    message = createErrorResponse(
+                    status = HttpStatusCode.BadRequest, message = createErrorResponse(
                         message = "Bad Request",
                         code = HttpStatusCode.BadRequest.value,
                         details = "User ID is required."
@@ -65,12 +69,10 @@ fun Routing.getChats(personalChatRepository: PersonChatRepository) {
             }
             checkAuth { authParam ->
                 val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-                val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull()
-                    ?: 20
+                val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20
                 if (authParam.userId != userId) {
                     call.respond(
-                        status = HttpStatusCode.BadRequest,
-                        message = createErrorResponse(
+                        status = HttpStatusCode.BadRequest, message = createErrorResponse(
                             message = "Bad Request",
                             code = HttpStatusCode.BadRequest.value,
                             details = "User ID in query parameter does not match authenticated user ID."
@@ -81,21 +83,17 @@ fun Routing.getChats(personalChatRepository: PersonChatRepository) {
                 try {
                     val paginatedChats = runBlocking {
                         personalChatRepository.getAllPersonalChatRoom(
-                            userID = userId,
-                            paginationRequest = PaginationRequest(
-                                page = page,
-                                pageSize = pageSize
+                            userID = userId, paginationRequest = PaginationRequest(
+                                page = page, pageSize = pageSize
                             )
                         )
                     }
                     call.respond(
-                        status = HttpStatusCode.OK,
-                        message = paginatedChats
+                        status = HttpStatusCode.OK, message = paginatedChats
                     )
                 } catch (e: Exception) {
                     call.respond(
-                        status = HttpStatusCode.InternalServerError,
-                        message = createErrorResponse(
+                        status = HttpStatusCode.InternalServerError, message = createErrorResponse(
                             message = "Internal Server Error",
                             code = HttpStatusCode.InternalServerError.value,
                             details = e.message ?: "An unexpected error occurred."
@@ -118,8 +116,7 @@ fun Routing.watchPersonalChats(
             val initialPageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20
 
             checkDeviceIntegrity(
-                currentUserId = userId,
-                userLogInRepository = userLogInRepository
+                currentUserId = userId, userLogInRepository = userLogInRepository
             ) {
                 if (userId.isNullOrBlank()) {
                     close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "User ID is required"))
@@ -130,12 +127,9 @@ fun Routing.watchPersonalChats(
 
                 // Add connection with initial pagination
                 connectionManager.addConnection(
-                    userId,
-                    paginationRequest = PaginationRequest(
-                        page = initialPage,
-                        pageSize = initialPageSize
-                    ),
-                    this
+                    userId, paginationRequest = PaginationRequest(
+                        page = initialPage, pageSize = initialPageSize
+                    ), this
                 )
 
                 try {
@@ -188,18 +182,16 @@ fun Routing.watchPersonalChats(
 
 
 fun Routing.personalChatRoutes(
-    userLogInRepository: UserLogInRepository
+    createChatRoomUseCase: CreateChatRoomUseCase
 ) {
     authenticate("auth-bearer") {
         post(PersonalChatRoutes.CreateChat.path) {
             checkAuth { authParam ->
-                val personChatRepository: PersonChatRepository = PersonChatRepositoryImp()
                 val userId = authParam.userId
-                val chatModel = call.receive<PersonalChatRoom>()
+                val chatModel = call.receive<CreatePersonalChatRoomRequest>()
                 if (chatModel.userId != userId) {
                     call.respond(
-                        status = HttpStatusCode.BadRequest,
-                        message = createErrorResponse(
+                        status = HttpStatusCode.BadRequest, message = createErrorResponse(
                             message = "Bad Request",
                             code = HttpStatusCode.BadRequest.value,
                             details = "User ID in chat model does not match authenticated user ID."
@@ -207,15 +199,37 @@ fun Routing.personalChatRoutes(
                     )
                     return@checkAuth
                 }
-                val chatId = personChatRepository.createPersonalChatRoom(
-                    model = chatModel.copy(
-                        userId = userId
+                try {
+                    val chatId = createChatRoomUseCase(
+                        userId = chatModel.userId, friendsId = chatModel.friendsId, message = chatModel.message
                     )
-                )
-                call.respond(
-                    status = HttpStatusCode.Created,
-                    message = chatId
-                )
+                    when (chatId) {
+                        is TransactionResult.Failure<*, *> -> {
+                            val exception = chatId.exception
+                            call.respond(
+                                status = HttpStatusCode.InternalServerError, message = createErrorResponse(
+                                    message = "Transaction Failed: ${exception.message}",
+                                    code = HttpStatusCode.InternalServerError.value,
+                                    details = "An error occurred while creating the chat room."
+                                )
+                            )
+                        }
+
+                        is TransactionResult.Success<*, *> -> {
+                            call.respond(
+                                status = HttpStatusCode.OK, message = mapOf("chatRoomId" to chatId.mongoResult)
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    call.respond(
+                        status = HttpStatusCode.InternalServerError, message = createErrorResponse(
+                            message = "Internal Server Error",
+                            code = HttpStatusCode.InternalServerError.value,
+                            details = e.message ?: "An unexpected error occurred."
+                        )
+                    )
+                }
             }
         }
     }

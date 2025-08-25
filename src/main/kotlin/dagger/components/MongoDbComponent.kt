@@ -35,5 +35,4 @@ interface MongoDbComponent {
 
     fun getPersonChatRoomConnectionManager(): PersonChatRoomConnectionManager
 
-    fun getCreateChatRoomUseCase(): com.aatech.database.usecase.CreateChatRoomUseCase
 }
