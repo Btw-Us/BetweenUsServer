@@ -38,3 +38,5 @@ out/
 docker-compose.yml
 scripts/*.sh
 src/main/resources/serviceAccountKey.json
+*.txt
+
