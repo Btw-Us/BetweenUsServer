@@ -30,19 +30,20 @@ jobs:
     needs: deploy
     if: always()   # ✅ Always run, even if skipped/failed
     steps:
-      - name: Send Signal Notification
-        run: |
-          EXEC_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-          if [ "${{ needs.deploy.result }}" = "skipped" ]; then
-            MESSAGE="⚠️ Deployment Skipped%0A⏰ Time: $EXEC_TIME"
-          elif [ "${{ needs.deploy.result }}" = "failure" ]; then
-            MESSAGE="❌ Deployment Failed%0A⏰ Time: $EXEC_TIME"
-          elif [ "${{ needs.deploy.result }}" = "success" ] && [ "${{ github.event_name }}" = "push" ]; then
-            COMMIT_MSG="${{ github.event.head_commit.message }}"
-            MESSAGE="🚀 Deployment Completed%0A📝 Commit: $COMMIT_MSG%0A⏰ Time: $EXEC_TIME"
-          elif [ "${{ needs.deploy.result }}" = "success" ] && [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            MESSAGE="🚀 Deployment Completed (Manual Trigger)%0A⏰ Time: $EXEC_TIME"
-          else
-            MESSAGE="❓ Unknown deployment status: ${{ needs.deploy.result }}%0A⏰ Time: $EXEC_TIME"
-          fi
+     - name: Send Signal Notification
+       run: |
+              EXEC_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+              if [ "${{ needs.deploy.result }}" = "skipped" ]; then
+                MESSAGE="⚠️ Deployment Skipped%0A⏰ Time: $EXEC_TIME"
+              elif [ "${{ needs.deploy.result }}" = "failure" ]; then
+                MESSAGE="❌ Deployment Failed%0A⏰ Time: $EXEC_TIME"
+              elif [ "${{ needs.deploy.result }}" = "success" ] && [ "${{ github.event_name }}" = "push" ]; then
+                COMMIT_MSG="${{ github.event.head_commit.message }}"
+                MESSAGE="🚀 Deployment Completed%0A📝 Commit: $COMMIT_MSG%0A⏰ Time: $EXEC_TIME"
+              elif [ "${{ needs.deploy.result }}" = "success" ] && [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                MESSAGE="🚀 Deployment Completed (Manual Trigger)%0A⏰ Time: $EXEC_TIME"
+              else
+                MESSAGE="❓ Unknown deployment status: ${{ needs.deploy.result }}%0A⏰ Time: $EXEC_TIME"
+              fi
+    curl -s "https://signal.callmebot.com/signal/send.php?${{ secrets.CALL_ME_API_PARAMS }}&text=$MESSAGE"
           curl -s "https://signal.callmebot.com/signal/send.php?${{ secrets.CALL_ME_API_PARAMS }}&text=$MESSAGE"
