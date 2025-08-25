@@ -13,13 +13,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Re-Deploy and Send Report to Signal
+      - name: Re-Deploy and Generate Report
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: root
           password: ${{ secrets.SSH_PASSWORD }}
-          envs: CALL_ME_API_PARAMS
           script: |
             echo "✅ Connected to DigitalOcean!"
             cd BetweenUsServer/
@@ -54,11 +53,3 @@ jobs:
             docker compose logs --tail=20 >> redeploy_report.txt
             echo "---------------------" >> redeploy_report.txt
             echo "✅ Re-Deployment Completed!" >> redeploy_report.txt
-
-            # Send report to Signal in chunks (Signal has message length limit)
-            while read -r chunk; do
-              ENCODED=$(echo "$chunk" | jq -sRr @uri)
-              curl -s "https://signal.callmebot.com/signal/send.php?${CALL_ME_API_PARAMS}&text=${ENCODED}" >/dev/null
-            done < <(split -b 1800 redeploy_report.txt /tmp/report_chunk_ && for f in /tmp/report_chunk_*; do cat "$f"; echo; done)
-
-            echo "📱 Report sent to Signal!"
