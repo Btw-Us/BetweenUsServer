@@ -43,27 +43,24 @@ jobs:
             echo "---- Last 20 Logs ----"
             docker compose logs --tail=20
 
-  report:
-    runs-on: ubuntu-latest
-    needs: [deploy]
-    # Run report only if deploy was executed (not skipped)
-    if: always() && needs.deploy.result != 'skipped'
-    steps:
-      - name: Deployment Report
-        run: |
-          echo "📢 Re-Deploy Report"
-          echo "---------------------"
-          echo "Repository: $GITHUB_REPOSITORY"
-          echo "Commit: $GITHUB_SHA"
-          echo "Commit Message: ${{ github.event.head_commit.message }}"
-          echo "Triggered by: $GITHUB_ACTOR"
-          echo "Deploy Type: re-deploy (without build)"
-          echo "---------------------"
-          echo "🔎 Job Results"
-          echo "Deploy Job: ${{ needs.deploy.result }}"
+            # Save report to a file so GitHub can use it later
+            echo "📢 Re-Deploy Report" > redeploy_report.txt
+            echo "---------------------" >> redeploy_report.txt
+            echo "Repository: $GITHUB_REPOSITORY" >> redeploy_report.txt
+            echo "Commit: $GITHUB_SHA" >> redeploy_report.txt
+            echo "Commit Message: ${{ github.event.head_commit.message }}" >> redeploy_report.txt
+            echo "Triggered by: $GITHUB_ACTOR" >> redeploy_report.txt
+            echo "Deploy Type: re-deploy (without build)" >> redeploy_report.txt
+            echo "---------------------" >> redeploy_report.txt
+            echo "✅ Re-Deployment Completed!" >> redeploy_report.txt
 
-          if [ "${{ needs.deploy.result }}" == "success" ]; then
-            echo "✅ Re-Deployment Successful!"
-          else
-            echo "❌ Re-Deployment Failed!"
-          fi
+      - name: Upload Deployment Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: redeploy_report
+          path: redeploy_report.txt
+
+      - name: Send Report to Signal
+        run: |
+          REPORT=$(cat redeploy_report.txt | sed ':a;N;$!ba;s/\n/ %0A /g')
+          curl -s "https://signal.callmebot.com/signal/send.php?${{ secrets.CALL_ME_API_PARAMS }}&text=${REPORT}"
