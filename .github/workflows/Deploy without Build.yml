@@ -27,29 +27,3 @@ jobs:
             docker compose up -d
             echo "✅ Re-Deploy Finished"
             echo "📊 Gathering System Info..."
-
-            # Create deploy report
-            echo "📢 Re-Deploy Report" > redeploy_report.txt
-            echo "---------------------" >> redeploy_report.txt
-            echo "Repository: $GITHUB_REPOSITORY" >> redeploy_report.txt
-            echo "Commit: $GITHUB_SHA" >> redeploy_report.txt
-            echo "Commit Message: ${{ github.event.head_commit.message }}" >> redeploy_report.txt
-            echo "Triggered by: $GITHUB_ACTOR" >> redeploy_report.txt
-            echo "Deploy Type: re-deploy (without build)" >> redeploy_report.txt
-            echo "---------------------" >> redeploy_report.txt
-
-            echo "💻 SYSTEM STATUS" >> redeploy_report.txt
-            echo "---- Disk Usage ----" >> redeploy_report.txt
-            df -h >> redeploy_report.txt
-            echo "---- Memory Usage ----" >> redeploy_report.txt
-            free -m >> redeploy_report.txt
-            echo "---- CPU Load ----" >> redeploy_report.txt
-            uptime >> redeploy_report.txt
-            echo "---- Top Processes ----" >> redeploy_report.txt
-            ps aux --sort=-%mem | head -n 10 >> redeploy_report.txt
-            echo "---- Docker Status ----" >> redeploy_report.txt
-            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" >> redeploy_report.txt
-            echo "---- Last 20 Logs ----" >> redeploy_report.txt
-            docker compose logs --tail=20 >> redeploy_report.txt
-            echo "---------------------" >> redeploy_report.txt
-            echo "✅ Re-Deployment Completed!" >> redeploy_report.txt
