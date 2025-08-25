@@ -39,17 +39,11 @@ jobs:
             echo "✅ Deployment Finished"
 
             echo "📊 Gathering System Info..."
-            echo "---- Disk Usage ----"
             df -h
-            echo "---- Memory Usage ----"
             free -m
-            echo "---- CPU Load ----"
             uptime
-            echo "---- Top Processes ----"
             ps aux --sort=-%mem | head -n 10
-            echo "---- Docker Status ----"
             docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-            echo "---- Last 20 Logs ----"
             docker compose logs --tail=20
 
   clean_deploy:
@@ -76,23 +70,16 @@ jobs:
             echo "✅ Clean Deployment Finished"
 
             echo "📊 Gathering System Info..."
-            echo "---- Disk Usage ----"
             df -h
-            echo "---- Memory Usage ----"
             free -m
-            echo "---- CPU Load ----"
             uptime
-            echo "---- Top Processes ----"
             ps aux --sort=-%mem | head -n 10
-            echo "---- Docker Status ----"
             docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-            echo "---- Last 20 Logs ----"
             docker compose logs --tail=20
 
   report:
     runs-on: ubuntu-latest
     needs: [deploy, clean_deploy]
-    # Run only if at least one job didn't skip
     if: always() && (needs.deploy.result != 'skipped' || needs.clean_deploy.result != 'skipped')
     steps:
       - name: Deployment Report
@@ -124,3 +111,32 @@ jobs:
           else
             echo "❌ Deployment Failed!"
           fi
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [deploy, clean_deploy]
+    if: always() && (needs.deploy.result != 'skipped' || needs.clean_deploy.result != 'skipped')
+    steps:
+      - name: Send Signal Notification
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          EXEC_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+          
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            DEPLOY_TYPE="${{ github.event.inputs.deploy_type }}"
+          else
+            if echo "$COMMIT_MSG" | grep -q "\[clean\]"; then
+              DEPLOY_TYPE="clean"
+            else
+              DEPLOY_TYPE="build"
+            fi
+          fi
+
+          if [ "${{ needs.deploy.result }}" == "success" ] || [ "${{ needs.clean_deploy.result }}" == "success" ]; then
+            STATUS="✅ Deployment Successful"
+          else
+            STATUS="❌ Deployment Failed"
+          fi
+
+          MESSAGE="🚀 $STATUS%0A📝 Commit: $COMMIT_MSG%0A⚡ Type: $DEPLOY_TYPE%0A⏰ Time: $EXEC_TIME"
+          curl -s "https://signal.callmebot.com/signal/send.php?${{ secrets.CALL_ME_API_PARAMS }}&text=${MESSAGE}"
