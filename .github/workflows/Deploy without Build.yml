@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [ "master" ]
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -11,7 +12,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Re-Deploy and Generate Report
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -26,15 +27,17 @@ jobs:
             docker compose up -d
             echo "✅ Re-Deploy Finished"
             echo "📊 Gathering System Info..."
-            
+
       - name: Send Signal Notification
         if: success()
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            COMMIT_MSG="Manual deployment triggered"
-          else
+          if [ "${{ github.event_name }}" == "push" ]; then
             COMMIT_MSG="${{ github.event.head_commit.message }}"
+          else
+            COMMIT_MSG="Manual trigger (no commit)"
           fi
+          
           EXEC_TIME=$(date '+%Y-%m-%d %H:%M:%S')
           MESSAGE="🚀 Deployment Completed%0A📝 Commit: $COMMIT_MSG%0A⏰ Time: $EXEC_TIME"
+          
           curl -s "https://signal.callmebot.com/signal/send.php?${{ secrets.CALL_ME_API_PARAMS }}&text=${MESSAGE}"
