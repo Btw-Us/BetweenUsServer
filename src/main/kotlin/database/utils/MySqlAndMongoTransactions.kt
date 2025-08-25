@@ -25,6 +25,7 @@ sealed class TransactionResult<T, R> {
 }
 
 
+//TODO: Add conditional execution
 suspend fun <T, R> mysqlAndMongoTransactions(
     mysqlTransaction: suspend () -> T,
     mongoTransaction: suspend () -> R,

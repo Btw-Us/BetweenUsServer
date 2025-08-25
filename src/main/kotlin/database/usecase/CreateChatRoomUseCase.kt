@@ -38,13 +38,13 @@ data class CreateChatRoomUseCase(
         message: String
     ) = withContext(Dispatchers.IO) {
         val chatRoomId = ObjectId().toString()
-        val userName = userInteraction.getUserById(
+        val userDetails = userInteraction.getUserById(
             userId
-        )?.fullName ?: throw Exception("User not found")
+        ) ?: throw Exception("User not found")
 
-        val friendsFullName = userInteraction.getUserById(
+        val friendsDetails = userInteraction.getUserById(
             friendsId
-        )?.fullName ?: throw Exception("Friend not found")
+        ) ?: throw Exception("Friend not found")
 
         mysqlAndMongoTransactions(
             mysqlTransaction = {
@@ -62,8 +62,10 @@ data class CreateChatRoomUseCase(
                 val personalChatRoom = PersonalChatRoom(
                     userId = userId,
                     friendId = friendsId,
-                    userName = userName,
-                    friendName = friendsFullName,
+                    userName = userDetails.fullName,
+                    friendName = friendsDetails.fullName,
+                    userProfileUrl = userDetails.profilePicture ?: "",
+                    friendProfileUrl = friendsDetails.profilePicture ?: "",
                     lastMessage = message,
                     lastMessageTime = System.currentTimeMillis(),
                     unreadCount = 0,

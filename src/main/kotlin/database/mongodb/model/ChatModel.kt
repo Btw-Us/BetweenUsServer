@@ -22,6 +22,8 @@ data class PersonalChatRoom(
     val friendId: String,
     val userName: String,
     val friendName: String,
+    val friendProfileUrl: String,
+    val userProfileUrl: String,
     val lastMessage: String? = null,
     val lastMessageTime: Long? = null,
     val unreadCount: Int = 0,
