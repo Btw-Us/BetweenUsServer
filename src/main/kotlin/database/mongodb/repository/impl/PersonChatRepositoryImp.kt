@@ -36,7 +36,7 @@ class PersonChatRepositoryImp(
         database.getCollection<PersonalChatRoom>(MongoDbCollectionNames.PersonalChatRoom.cName)
     private val messageCollection = database.getCollection<Message>(MongoDbCollectionNames.Message.cName)
 
-    override suspend fun createChat(model: PersonalChatRoom): String {
+    override suspend fun createPersonalChatRoom(model: PersonalChatRoom): String {
         return try {
             val result = personalChatCollection.insertOne(model)
             result.insertedId?.asString()?.value ?: throw Exception("Failed to create chat")
@@ -45,14 +45,6 @@ class PersonChatRepositoryImp(
         }
     }
 
-    override suspend fun addChatEntry(model: Message): String {
-        return try {
-            val result = messageCollection.insertOne(model)
-            result.insertedId?.asString()?.value ?: throw Exception("Failed to add chat entry")
-        } catch (e: Exception) {
-            throw Exception("Error adding chat entry: ${e.message}", e)
-        }
-    }
 
     suspend fun getPersonalChatsWithPagination(
         userId: String,
@@ -95,7 +87,7 @@ class PersonChatRepositoryImp(
         return PaginatedResponse(chatRooms, paginationInfo)
     }
 
-    override suspend fun getChats(
+    override suspend fun getAllPersonalChatRoom(
         userID: String,
         paginationRequest: PaginationRequest
     ): PaginatedResponse<PersonalChatRoom> {
@@ -200,6 +192,56 @@ class PersonChatRepositoryImp(
             .flowOn(Dispatchers.IO)
     }
 
+
+    suspend fun getChatsWithPagination(
+        personalChatRoomId: String,
+        paginationRequest: PaginationRequest
+    ): PaginatedResponse<Message> {
+        val filter = Filters.eq("chatRoomId", personalChatRoomId)
+
+        // Get total count
+        val totalItems = messageCollection.countDocuments(filter)
+
+        // Get paginated data with proper sorting
+        val messages = messageCollection
+            .find(filter)
+            .sort(Sorts.descending("timestamp"))
+            .skip(paginationRequest.offset)
+            .limit(paginationRequest.limit) // Use limit, not pageSize
+            .toList()
+
+        val totalPages = if (totalItems == 0L) 1
+        else ((totalItems + paginationRequest.limit - 1) / paginationRequest.limit).toInt()
+
+        val paginationInfo = PaginationInfo(
+            currentPage = paginationRequest.page,
+            pageSize = paginationRequest.limit, // Use limit for consistency
+            totalItems = totalItems,
+            totalPages = totalPages,
+            hasNext = paginationRequest.page < totalPages,
+            hasPrevious = paginationRequest.page > 1
+        )
+
+        return PaginatedResponse(messages, paginationInfo)
+    }
+
+
+    override suspend fun getChatEntries(
+        personalChatRoomId: String,
+        paginationRequest: PaginationRequest
+    ): PaginatedResponse<Message> =
+        getChatsWithPagination(personalChatRoomId, paginationRequest)
+
+
+    override suspend fun addChatEntry(model: Message): String {
+        return try {
+            val result = messageCollection.insertOne(model)
+            result.insertedId?.asString()?.value ?: throw Exception("Failed to add chat entry")
+        } catch (e: Exception) {
+            throw Exception("Error adding chat entry: ${e.message}", e)
+        }
+    }
+
     override fun watchChatEntries(personalChatRoomId: String): Flow<List<Message>> {
         val pipeline = mutableListOf(
             Aggregates.match(
@@ -234,6 +276,15 @@ class PersonChatRepositoryImp(
                     else -> currentList
                 }
             }
+    }
+
+    override suspend fun rollBackCreatePersonalChatRoomWithMessage(id: String) {
+        try {
+            personalChatCollection.deleteOne(Filters.eq("_id", id))
+            messageCollection.deleteMany(Filters.eq("chatRoomId", id))
+        } catch (e: Exception) {
+            throw Exception("Error during rollback: ${e.message}", e)
+        }
     }
 
 }

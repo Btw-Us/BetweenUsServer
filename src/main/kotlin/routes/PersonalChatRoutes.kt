@@ -80,7 +80,7 @@ fun Routing.getChats(personalChatRepository: PersonChatRepository) {
                 }
                 try {
                     val paginatedChats = runBlocking {
-                        personalChatRepository.getChats(
+                        personalChatRepository.getAllPersonalChatRoom(
                             userID = userId,
                             paginationRequest = PaginationRequest(
                                 page = page,
@@ -207,7 +207,7 @@ fun Routing.personalChatRoutes(
                     )
                     return@checkAuth
                 }
-                val chatId = personChatRepository.createChat(
+                val chatId = personChatRepository.createPersonalChatRoom(
                     model = chatModel.copy(
                         userId = userId
                     )

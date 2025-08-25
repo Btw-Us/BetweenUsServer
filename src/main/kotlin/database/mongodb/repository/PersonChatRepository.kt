@@ -17,21 +17,29 @@ import com.aatech.database.utils.PaginationRequest
 import kotlinx.coroutines.flow.Flow
 
 interface PersonChatRepository {
-    suspend fun createChat(model: PersonalChatRoom): String
+    suspend fun createPersonalChatRoom(model: PersonalChatRoom): String
 
-    suspend fun getChats(
+    suspend fun getAllPersonalChatRoom(
         userID: String,
         paginationRequest: PaginationRequest
     ): PaginatedResponse<PersonalChatRoom>
-
-    suspend fun addChatEntry(model: Message): String
 
     fun watchPersonalChats(
         userId: String,
         paginationRequest: PaginationRequest
     ): Flow<PaginatedResponse<PersonalChatRoom>>
 
+    suspend fun addChatEntry(model: Message): String
+
+    suspend fun getChatEntries(
+        personalChatRoomId: String,
+        paginationRequest: PaginationRequest
+    ): PaginatedResponse<Message>
+
     fun watchChatEntries(
         personalChatRoomId: String
     ): Flow<List<Message>>
+
+
+    suspend fun rollBackCreatePersonalChatRoomWithMessage(id: String)
 }
