@@ -1,10 +1,8 @@
 name: Re-Deploy(Without Build) to Digital Ocean 🛫
-
 on:
   workflow_dispatch:
   push:
     branches: [ "master" ]
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -13,9 +11,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Run SSH commands on DigitalOcean
-        id: redeploy_step
+      - name: Re-Deploy and Send Report to Signal
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -28,22 +24,9 @@ jobs:
             docker compose down
             docker compose up -d
             echo "✅ Re-Deploy Finished"
-
             echo "📊 Gathering System Info..."
-            echo "---- Disk Usage ----"
-            df -h
-            echo "---- Memory Usage ----"
-            free -m
-            echo "---- CPU Load ----"
-            uptime
-            echo "---- Top Processes ----"
-            ps aux --sort=-%mem | head -n 10
-            echo "---- Docker Status ----"
-            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-            echo "---- Last 20 Logs ----"
-            docker compose logs --tail=20
-
-            # Save report to a file so GitHub can use it later
+            
+            # Create comprehensive deploy report with system info
             echo "📢 Re-Deploy Report" > redeploy_report.txt
             echo "---------------------" >> redeploy_report.txt
             echo "Repository: $GITHUB_REPOSITORY" >> redeploy_report.txt
@@ -52,15 +35,26 @@ jobs:
             echo "Triggered by: $GITHUB_ACTOR" >> redeploy_report.txt
             echo "Deploy Type: re-deploy (without build)" >> redeploy_report.txt
             echo "---------------------" >> redeploy_report.txt
+            
+            # Add system information to report
+            echo "💻 SYSTEM STATUS" >> redeploy_report.txt
+            echo "---- Disk Usage ----" >> redeploy_report.txt
+            df -h >> redeploy_report.txt
+            echo "---- Memory Usage ----" >> redeploy_report.txt
+            free -m >> redeploy_report.txt
+            echo "---- CPU Load ----" >> redeploy_report.txt
+            uptime >> redeploy_report.txt
+            echo "---- Top Processes ----" >> redeploy_report.txt
+            ps aux --sort=-%mem | head -n 10 >> redeploy_report.txt
+            echo "---- Docker Status ----" >> redeploy_report.txt
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" >> redeploy_report.txt
+            echo "---- Last 20 Logs ----" >> redeploy_report.txt
+            docker compose logs --tail=20 >> redeploy_report.txt
+            echo "---------------------" >> redeploy_report.txt
             echo "✅ Re-Deployment Completed!" >> redeploy_report.txt
-
-      - name: Upload Deployment Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: redeploy_report
-          path: redeploy_report.txt
-
-      - name: Send Report to Signal
-        run: |
-          REPORT=$(cat redeploy_report.txt | sed ':a;N;$!ba;s/\n/ %0A /g')
-          curl -s "https://signal.callmebot.com/signal/send.php?${{ secrets.CALL_ME_API_PARAMS }}&text=${REPORT}"
+            
+            # Send report to Signal
+            REPORT=$(cat redeploy_report.txt | sed ':a;N;$!ba;s/\n/ %0A /g')
+            curl -s "https://signal.callmebot.com/signal/send.php?${{ secrets.CALL_ME_API_PARAMS }}&text=${REPORT}"
+            
+            echo "📱 Report sent to Signal!"
