@@ -28,16 +28,22 @@ jobs:
             echo "✅ Re-Deploy Finished"
             echo "📊 Gathering System Info..."
 
+  notify:
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always()   # ✅ Always run, even if deploy is skipped/failed
+    steps:
       - name: Send Signal Notification
-        if: success()
         run: |
-          if [ "${{ github.event_name }}" == "push" ]; then
-            COMMIT_MSG="${{ github.event.head_commit.message }}"
-          else
-            COMMIT_MSG="Manual trigger (no commit)"
-          fi
-          
           EXEC_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-          MESSAGE="🚀 Deployment Completed%0A📝 Commit: $COMMIT_MSG%0A⏰ Time: $EXEC_TIME"
+          
+          if [ "${{ needs.deploy.result }}" = "skipped" ]; then
+            MESSAGE="⚠️ Deployment Skipped%0A⏰ Time: $EXEC_TIME"
+          elif [ "${{ github.event_name }}" == "push" ]; then
+            COMMIT_MSG="${{ github.event.head_commit.message }}"
+            MESSAGE="🚀 Deployment Completed%0A📝 Commit: $COMMIT_MSG%0A⏰ Time: $EXEC_TIME"
+          else
+            MESSAGE="🚀 Deployment Completed (Manual Trigger)%0A⏰ Time: $EXEC_TIME"
+          fi
           
           curl -s "https://signal.callmebot.com/signal/send.php?${{ secrets.CALL_ME_API_PARAMS }}&text=${MESSAGE}"
