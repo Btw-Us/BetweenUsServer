@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [ "master" ]
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -11,12 +12,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Re-Deploy and Send Report to Signal
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: root
           password: ${{ secrets.SSH_PASSWORD }}
+          envs: CALL_ME_API_PARAMS
           script: |
             echo "✅ Connected to DigitalOcean!"
             cd BetweenUsServer/
@@ -25,8 +28,8 @@ jobs:
             docker compose up -d
             echo "✅ Re-Deploy Finished"
             echo "📊 Gathering System Info..."
-            
-            # Create comprehensive deploy report with system info
+
+            # Create deploy report
             echo "📢 Re-Deploy Report" > redeploy_report.txt
             echo "---------------------" >> redeploy_report.txt
             echo "Repository: $GITHUB_REPOSITORY" >> redeploy_report.txt
@@ -35,8 +38,7 @@ jobs:
             echo "Triggered by: $GITHUB_ACTOR" >> redeploy_report.txt
             echo "Deploy Type: re-deploy (without build)" >> redeploy_report.txt
             echo "---------------------" >> redeploy_report.txt
-            
-            # Add system information to report
+
             echo "💻 SYSTEM STATUS" >> redeploy_report.txt
             echo "---- Disk Usage ----" >> redeploy_report.txt
             df -h >> redeploy_report.txt
@@ -52,9 +54,11 @@ jobs:
             docker compose logs --tail=20 >> redeploy_report.txt
             echo "---------------------" >> redeploy_report.txt
             echo "✅ Re-Deployment Completed!" >> redeploy_report.txt
-            
-            # Send report to Signal
-            REPORT=$(cat redeploy_report.txt | sed ':a;N;$!ba;s/\n/ %0A /g')
-            curl -s "https://signal.callmebot.com/signal/send.php?${{ secrets.CALL_ME_API_PARAMS }}&text=${REPORT}"
-            
+
+            # Send report to Signal in chunks (Signal has message length limit)
+            while read -r chunk; do
+              ENCODED=$(echo "$chunk" | jq -sRr @uri)
+              curl -s "https://signal.callmebot.com/signal/send.php?${CALL_ME_API_PARAMS}&text=${ENCODED}" >/dev/null
+            done < <(split -b 1800 redeploy_report.txt /tmp/report_chunk_ && for f in /tmp/report_chunk_*; do cat "$f"; echo; done)
+
             echo "📱 Report sent to Signal!"
