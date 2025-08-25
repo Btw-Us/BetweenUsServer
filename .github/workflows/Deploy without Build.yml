@@ -27,3 +27,15 @@ jobs:
             docker compose up -d
             echo "✅ Re-Deploy Finished"
             echo "📊 Gathering System Info..."
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: success()   # ✅ Only runs if deploy job was not skipped/failed
+    steps:
+      - name: Send Signal Notification
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          EXEC_TIME=$(date '+%Y-%m-%d %H:%M:%S') 
+          MESSAGE="🚀 Deployment Completed%0A📝 Commit: $COMMIT_MSG%0A⏰ Time: $EXEC_TIME"
+          curl -s "https://signal.callmebot.com/signal/send.php?${{ secrets.CALL_ME_API_PARAMS }}&text=${MESSAGE}"
