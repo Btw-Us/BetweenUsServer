@@ -1,13 +1,23 @@
 name: Deploy to DigitalOcean
+
 on:
   workflow_dispatch:
+    inputs:
+      deploy_type:
+        description: "Choose deployment type"
+        required: true
+        default: "build"
+        type: choice
+        options:
+          - build
+          - clean
   push:
     branches: [ "master" ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '[deploy]') || contains(github.event.head_commit.message, '[build]')
+    if: github.event_name == 'push' && (contains(github.event.head_commit.message, '[deploy]') || contains(github.event.head_commit.message, '[build]')) || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_type == 'build')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -15,7 +25,7 @@ jobs:
       - name: Run SSH commands on DigitalOcean
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{secrets.SSH_HOST}}
+          host: ${{ secrets.SSH_HOST }}
           username: root
           password: ${{ secrets.SSH_PASSWORD }}
           script: |
@@ -28,7 +38,7 @@ jobs:
 
   clean_deploy:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '[clean]')
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[clean]') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_type == 'clean')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,7 +46,7 @@ jobs:
       - name: Run SSH commands on DigitalOcean
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{secrets.SSH_HOST}}
+          host: ${{ secrets.SSH_HOST }}
           username: root
           password: ${{ secrets.SSH_PASSWORD }}
           script: |
