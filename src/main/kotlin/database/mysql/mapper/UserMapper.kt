@@ -16,6 +16,7 @@
 
 package com.aatech.database.mysql.mapper
 
+import com.aatech.config.response.AllFriendsResponse
 import com.aatech.database.mysql.model.*
 import com.aatech.database.mysql.model.entity.*
 import org.jetbrains.exposed.v1.core.ResultRow
@@ -31,6 +32,23 @@ fun rowToUser(row: ResultRow): User =
         updatedAt = row[UserTable.updatedAt],
         lastLogin = row[UserTable.lastLogin],
         isProfileActive = row[UserTable.isProfileActive],
+    )
+
+
+fun rowToAlFriendResponse(row: ResultRow): AllFriendsResponse =
+    AllFriendsResponse(
+        user = User(
+            uuid = row[UserTable.uuid],
+            username = row[UserTable.username],
+            fullName = row[UserTable.fullName] ?: "No Name",
+            email = row[UserTable.email],
+            profilePicture = row[UserTable.profilePicture],
+            createdAt = row[UserTable.createdAt],
+            updatedAt = row[UserTable.updatedAt],
+            lastLogin = row[UserTable.lastLogin],
+            isProfileActive = row[UserTable.isProfileActive],
+        ),
+        chatRoomPath = row[UserFriendsTable.chatRoomPath]
     )
 
 

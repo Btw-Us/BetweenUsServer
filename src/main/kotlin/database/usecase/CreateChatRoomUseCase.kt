@@ -21,9 +21,9 @@ import com.aatech.database.mongodb.repository.PersonChatRepository
 import com.aatech.database.mysql.model.UserFriendsTable
 import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import com.aatech.database.utils.mysqlAndMongoTransactions
+import com.aatech.utils.generateUuidFromSub
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.bson.types.ObjectId
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.update
@@ -37,7 +37,7 @@ data class CreateChatRoomUseCase(
         friendsId: String,
         message: String
     ) = withContext(Dispatchers.IO) {
-        val chatRoomId = ObjectId().toString()
+        val chatRoomId = (userId + friendsId).generateUuidFromSub().toString()
         val userDetails = userInteraction.getUserById(
             userId
         ) ?: throw Exception("User not found")
@@ -60,6 +60,7 @@ data class CreateChatRoomUseCase(
             },
             mongoTransaction = {
                 val personalChatRoom = PersonalChatRoom(
+                    id = chatRoomId,
                     userId = userId,
                     friendId = friendsId,
                     userName = userDetails.username,

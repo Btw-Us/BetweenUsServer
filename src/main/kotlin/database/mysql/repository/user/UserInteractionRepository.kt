@@ -15,6 +15,7 @@
 
 package com.aatech.database.mysql.repository.user
 
+import com.aatech.config.response.AllFriendsResponse
 import com.aatech.database.mysql.model.FriendshipRequestStatus
 import com.aatech.database.mysql.model.entity.SearchUserResponse
 import com.aatech.database.mysql.model.entity.User
@@ -37,7 +38,7 @@ interface UserInteractionRepository {
 
     suspend fun getAllFriends(
         userId: String,
-    ): List<User>
+    ): List<AllFriendsResponse>
 
     suspend fun getAllReceivedRequests(
         userId: String,

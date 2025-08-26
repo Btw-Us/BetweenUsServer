@@ -15,6 +15,8 @@
 
 package com.aatech.database.mysql.repository.user.impl
 
+import com.aatech.config.response.AllFriendsResponse
+import com.aatech.database.mysql.mapper.rowToAlFriendResponse
 import com.aatech.database.mysql.mapper.rowToFriendRequest
 import com.aatech.database.mysql.mapper.rowToUser
 import com.aatech.database.mysql.model.*
@@ -25,11 +27,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.update
 
 class UserInteractionRepositoryImp : UserInteractionRepository {
     override suspend fun findFriends(
@@ -98,18 +97,30 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
             }
         }
 
-    override suspend fun getAllFriends(userId: String): List<User> {
+    override suspend fun getAllFriends(userId: String): List<AllFriendsResponse> {
         return withContext(Dispatchers.IO) {
             transaction {
-                val friendsAsRequester = UserFriendsTable.alias("friends_as_user")
-                val friendsAsReceiver = UserFriendsTable.alias("friends_as_friend")
-
-                joinUserAndFriendsTable(friendsAsRequester, userId, friendsAsReceiver)
-                    .selectAll()
+                val friendsAsRequester = UserTable
+                    .innerJoin(UserFriendsTable, { UserTable.uuid }, { UserFriendsTable.friendId })
+                    .select(UserTable.columns + UserFriendsTable.chatRoomPath)
                     .where {
-                        (friendsAsRequester[UserFriendsTable.friendshipRequestStatus] eq FriendshipRequestStatus.ACCEPTED.name) or
-                                (friendsAsReceiver[UserFriendsTable.friendshipRequestStatus] eq FriendshipRequestStatus.ACCEPTED.name)
-                    }.map(::rowToUser)
+                        (UserFriendsTable.userId eq userId) and
+                                (UserFriendsTable.friendshipRequestStatus eq FriendshipRequestStatus.ACCEPTED.name)
+                    }
+
+                // Get friends where user is the receiver
+                val friendsAsReceiver = UserTable
+                    .innerJoin(UserFriendsTable, { UserTable.uuid }, { UserFriendsTable.userId })
+                    .select(UserTable.columns + UserFriendsTable.chatRoomPath)
+                    .where {
+                        (UserFriendsTable.friendId eq userId) and
+                                (UserFriendsTable.friendshipRequestStatus eq FriendshipRequestStatus.ACCEPTED.name)
+                    }
+
+                // Combine results
+                (friendsAsRequester.toList() + friendsAsReceiver.toList())
+                    .distinctBy { it[UserTable.uuid] } // Remove duplicates
+                    .map(::rowToAlFriendResponse)
             }
         }
     }
