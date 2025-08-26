@@ -41,6 +41,12 @@ enum class MessageType {
 }
 
 @Serializable
+enum class MessageSenderType {
+    USER,
+    FRIEND
+}
+
+@Serializable
 data class Message(
     @param:BsonId
     val id: String = ObjectId().toString(),
@@ -48,10 +54,12 @@ data class Message(
     val userId: String,
     val friendId: String,
     val message: String,
+    val timestamp: Long,
     val messageType: MessageType = MessageType.TEXT,
     val mediaUrl: String? = null,
     val replyToMessageId: String? = null,
     val replyToMessage: String? = null,
-    val timestamp: Long,
+    val senderType: MessageSenderType = MessageSenderType.USER,
+    val isDelivered: Boolean = false,
     val isRead: Boolean = false
 )
