@@ -46,7 +46,7 @@ fun Routing.allPersonalChatRoutes() {
     watchPersonalChats(
         userLogInRepository = userLogInRepository
     )
-    personalChatRoutes(
+    createPersonalChatRoomRoute(
         createChatRoomUseCase = createChatRoomUseCase,
         userLogInRepository = userLogInRepository
     )
@@ -192,7 +192,7 @@ fun Routing.watchPersonalChats(
 }
 
 
-fun Routing.personalChatRoutes(
+fun Routing.createPersonalChatRoomRoute(
     userLogInRepository: UserLogInRepository,
     createChatRoomUseCase: CreateChatRoomUseCase
 ) {
