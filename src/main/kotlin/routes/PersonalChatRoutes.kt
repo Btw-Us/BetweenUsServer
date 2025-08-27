@@ -290,7 +290,8 @@ fun Routing.sendNewMessage(
                         )
                     }
                     call.respond(
-                        status = HttpStatusCode.OK, message = mapOf("messageId" to messageId)
+                        message = messageId,
+                        status = HttpStatusCode.Created
                     )
                 } catch (e: Exception) {
                     call.respond(

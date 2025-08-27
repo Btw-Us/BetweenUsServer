@@ -43,7 +43,6 @@ data class CreateChatRoomUseCase(
             userId = userId,
             friendId = friendsId
         )
-        println(existingChatRoomId)
         if (!existingChatRoomId.isNullOrBlank()) {
             personalChatRepository.addChatEntry(
                 Message(
