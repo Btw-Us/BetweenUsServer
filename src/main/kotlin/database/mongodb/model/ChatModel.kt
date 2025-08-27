@@ -61,14 +61,13 @@ data class Message(
     @param:BsonId
     val id: String = ObjectId().toString(),
     val chatRoomId: String,
-    val userId: String,
-    val friendId: String,
+    val fromUid: String,
+    val toUid: String,
     val message: String,
     val timestamp: Long,
     val messageType: MessageType = MessageType.TEXT,
     val mediaUrl: String? = null,
     val replyToMessageId: String? = null,
     val replyToMessage: String? = null,
-    val senderType: MessageSenderType = MessageSenderType.USER,
     val messageState: MessageState = MessageState.SEND
 )

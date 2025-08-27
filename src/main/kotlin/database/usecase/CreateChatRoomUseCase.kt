@@ -20,6 +20,7 @@ import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.mongodb.repository.PersonChatRepository
 import com.aatech.database.mysql.model.UserFriendsTable
 import com.aatech.database.mysql.repository.user.UserInteractionRepository
+import com.aatech.database.utils.TransactionResult
 import com.aatech.database.utils.mysqlAndMongoTransactions
 import com.aatech.utils.generateUuidFromSub
 import kotlinx.coroutines.Dispatchers
@@ -36,7 +37,29 @@ data class CreateChatRoomUseCase(
         userId: String,
         friendsId: String,
         message: String
-    ) = withContext(Dispatchers.IO) {
+    ): TransactionResult<Unit, String> = withContext(Dispatchers.IO) {
+
+        val existingChatRoomId = userInteraction.checkHasChatRoomId(
+            userId = userId,
+            friendId = friendsId
+        )
+        println(existingChatRoomId)
+        if (!existingChatRoomId.isNullOrBlank()) {
+            personalChatRepository.addChatEntry(
+                Message(
+                    chatRoomId = existingChatRoomId,
+                    fromUid = userId,
+                    toUid = friendsId,
+                    message = message,
+                    timestamp = System.currentTimeMillis()
+                )
+            )
+            return@withContext TransactionResult.Success(
+                Unit,
+                existingChatRoomId
+            )
+        }
+
         val chatRoomId = (userId + friendsId).generateUuidFromSub().toString()
         val userDetails = userInteraction.getUserById(
             userId
@@ -80,8 +103,8 @@ data class CreateChatRoomUseCase(
                 )
                 val message = Message(
                     chatRoomId = personalChatRoomId,
-                    userId = userId,
-                    friendId = friendsId,
+                    fromUid = userId,
+                    toUid = friendsId,
                     message = message,
                     timestamp = System.currentTimeMillis()
                 )

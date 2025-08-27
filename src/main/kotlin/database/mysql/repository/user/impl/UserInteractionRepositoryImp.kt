@@ -304,6 +304,17 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
         }
     }
 
+    override suspend fun checkHasChatRoomId(userId: String, friendId: String): String? =
+        withContext(Dispatchers.IO) {
+        transaction {
+            UserFriendsTable.selectAll().where {
+                (UserFriendsTable.userId eq userId and (UserFriendsTable.friendId eq friendId)) or
+                        (UserFriendsTable.userId eq friendId and (UserFriendsTable.friendId eq userId))
+            }.map { it[UserFriendsTable.chatRoomPath] }
+                .firstOrNull()
+        }
+    }
+
 
     fun rowToUserAndFriend(
         row: ResultRow,

@@ -69,4 +69,9 @@ interface UserInteractionRepository {
         friendId: String,
         chatRoomId: String
     ): Boolean
+
+    suspend fun checkHasChatRoomId(
+        userId: String,
+        friendId: String
+    ): String?
 }
