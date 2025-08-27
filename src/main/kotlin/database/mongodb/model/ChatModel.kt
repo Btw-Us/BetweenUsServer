@@ -49,6 +49,14 @@ enum class MessageSenderType {
 }
 
 @Serializable
+enum class MessageState {
+    PENDING,
+    SEND,
+    DELIVER,
+    READ
+}
+
+@Serializable
 data class Message(
     @param:BsonId
     val id: String = ObjectId().toString(),
@@ -62,6 +70,5 @@ data class Message(
     val replyToMessageId: String? = null,
     val replyToMessage: String? = null,
     val senderType: MessageSenderType = MessageSenderType.USER,
-    val isDelivered: Boolean = false,
-    val isRead: Boolean = false
+    val messageState: MessageState = MessageState.SEND
 )

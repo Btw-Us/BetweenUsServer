@@ -18,6 +18,7 @@ import com.aatech.config.response.createErrorResponse
 import com.aatech.dagger.components.DaggerMongoDbComponent
 import com.aatech.dagger.components.DaggerMySqlComponent
 import com.aatech.database.mongodb.model.Message
+import com.aatech.database.mongodb.model.MessageState
 import com.aatech.database.mongodb.repository.PersonChatRepository
 import com.aatech.database.mysql.repository.user.UserLogInRepository
 import com.aatech.database.usecase.CreateChatRoomUseCase
@@ -284,7 +285,7 @@ fun Routing.sendNewMessage(
                     val messageId = runBlocking {
                         personalChatRepository.addChatEntry(
                             model = messageModel.copy(
-                                isDelivered = true
+                                messageState = MessageState.SEND
                             )
                         )
                     }
