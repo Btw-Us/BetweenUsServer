@@ -10,6 +10,7 @@
 
 package com.aatech.database.mongodb.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
@@ -77,23 +78,27 @@ data class Message(
 sealed class PersonalChatChangeEvent {
     abstract val timestamp: Long
 
+    @SerialName("Connected")
     @Serializable
     data class Connected(
         override val timestamp: Long = System.currentTimeMillis()
     ) : PersonalChatChangeEvent()
 
+    @SerialName("Insert")
     @Serializable
     data class Insert(
         val data: PersonalChatRoom,
         override val timestamp: Long
     ) : PersonalChatChangeEvent()
 
+    @SerialName("Update")
     @Serializable
     data class Update(
         val data: PersonalChatRoom,
         override val timestamp: Long
     ) : PersonalChatChangeEvent()
 
+    @SerialName("Delete")
     @Serializable
     data class Delete(
         val deletedId: String,
