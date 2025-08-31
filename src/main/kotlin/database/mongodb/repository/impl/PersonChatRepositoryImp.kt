@@ -11,6 +11,7 @@
 package com.aatech.database.mongodb.repository.impl
 
 import com.aatech.database.mongodb.model.Message
+import com.aatech.database.mongodb.model.PersonalChatChangeEvent
 import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.mongodb.repository.PersonChatRepository
 import com.aatech.database.utils.PaginatedResponse
@@ -26,7 +27,6 @@ import com.mongodb.client.model.changestream.OperationType
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.runBlocking
 
 class PersonChatRepositoryImp(
     database: MongoDatabase = configureMongoDB()
@@ -94,17 +94,9 @@ class PersonChatRepositoryImp(
         return getPersonalChatsWithPagination(userID, paginationRequest)
     }
 
-    suspend fun getInitialPersonalChatsWithPagination(
-        userId: String,
-        paginationRequest: PaginationRequest
-    ): PaginatedResponse<PersonalChatRoom> {
-        return getPersonalChatsWithPagination(userId, paginationRequest)
-    }
-
     override fun watchPersonalChats(
         userId: String,
-        paginationRequest: PaginationRequest
-    ): Flow<PaginatedResponse<PersonalChatRoom>> {
+    ): Flow<PersonalChatChangeEvent> {
         val pipeline = listOf(
             Aggregates.match(
                 Filters.or(
@@ -133,63 +125,41 @@ class PersonChatRepositoryImp(
                     else -> false
                 }
             }
-            .scan(runBlocking {
-                getInitialPersonalChatsWithPagination(
-                    userId,
-                    paginationRequest
-                )
-            }) { currentResponse, changeStreamDocument ->
-                try {
-                    val currentList = currentResponse.data.toMutableList()
-
-                    when (changeStreamDocument.operationType) {
-                        OperationType.INSERT -> {
-                            val document = changeStreamDocument.fullDocument
-                            if (document != null && (document.userId == userId || document.friendId == userId)) {
-                                println("INSERT: Adding document ${document.id} for user $userId")
-                                currentList.add(0, document) // Add to beginning for real-time updates
-                            }
-                        }
-
-                        OperationType.UPDATE, OperationType.REPLACE -> {
-                            val document = changeStreamDocument.fullDocument
-                            if (document != null && (document.userId == userId || document.friendId == userId)) {
-                                println("UPDATE/REPLACE: Updating document ${document.id} for user $userId")
-                                val index = currentList.indexOfFirst { it.id == document.id }
-                                if (index != -1) {
-                                    currentList[index] = document
-                                }
-                            }
-                        }
-
-                        OperationType.DELETE -> {
-                            val documentId = changeStreamDocument.documentKey?.get("_id")?.asString()?.value
-                            if (documentId != null) {
-                                println("DELETE: Removing document $documentId for user $userId")
-                                currentList.removeIf { it.id == documentId }
-                            }
-                        }
-
-                        else -> {
-                            println("Other operation: ${changeStreamDocument.operationType}")
-                        }
+            .map { changeStreamDocument ->
+                when (changeStreamDocument.operationType) {
+                    OperationType.INSERT -> {
+                        PersonalChatChangeEvent.Insert(
+                            data = changeStreamDocument.fullDocument!!,
+                            timestamp = System.currentTimeMillis()
+                        )
                     }
 
-                    // Recalculate pagination info
-                    val newPaginationInfo = currentResponse.pagination.copy(
-                        totalItems = currentList.size.toLong(),
-                        totalPages = ((currentList.size + paginationRequest.pageSize - 1) / paginationRequest.pageSize)
-                    )
+                    OperationType.UPDATE, OperationType.REPLACE -> {
+                        PersonalChatChangeEvent.Update(
+                            data = changeStreamDocument.fullDocument!!,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    }
 
-                    PaginatedResponse(currentList, newPaginationInfo)
-                } catch (e: Exception) {
-                    println("Error processing change stream document: ${e.message}")
-                    e.printStackTrace()
-                    currentResponse
+                    OperationType.DELETE -> {
+                        val documentId = changeStreamDocument.documentKey?.get("_id")?.asString()?.value
+                        PersonalChatChangeEvent.Delete(
+                            deletedId = documentId!!,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    }
+
+                    else -> throw IllegalStateException("Unsupported operation type")
                 }
             }
-            .distinctUntilChanged()
             .flowOn(Dispatchers.IO)
+    }
+
+    suspend fun getInitialPersonalChatsWithPagination(
+        userId: String,
+        paginationRequest: PaginationRequest
+    ): PaginatedResponse<PersonalChatRoom> {
+        return getPersonalChatsWithPagination(userId, paginationRequest)
     }
 
 
@@ -288,3 +258,4 @@ class PersonChatRepositoryImp(
     }
 
 }
+

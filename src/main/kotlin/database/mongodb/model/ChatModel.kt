@@ -28,6 +28,7 @@ data class PersonalChatRoom(
     val userProfileUrl: String,
     val lastMessage: String? = null,
     val lastMessageTime: Long? = null,
+    val messageState: MessageState = MessageState.PENDING,
     val unreadCount: Int = 0,
     val isPinned: Boolean = false,
     val isArchived: Boolean = false
@@ -69,5 +70,33 @@ data class Message(
     val mediaUrl: String? = null,
     val replyToMessageId: String? = null,
     val replyToMessage: String? = null,
-    val messageState: MessageState = MessageState.SEND
+    val messageState: MessageState = MessageState.PENDING
 )
+
+@Serializable
+sealed class PersonalChatChangeEvent {
+    abstract val timestamp: Long
+
+    @Serializable
+    data class Connected(
+        override val timestamp: Long = System.currentTimeMillis()
+    ) : PersonalChatChangeEvent()
+
+    @Serializable
+    data class Insert(
+        val data: PersonalChatRoom,
+        override val timestamp: Long
+    ) : PersonalChatChangeEvent()
+
+    @Serializable
+    data class Update(
+        val data: PersonalChatRoom,
+        override val timestamp: Long
+    ) : PersonalChatChangeEvent()
+
+    @Serializable
+    data class Delete(
+        val deletedId: String,
+        override val timestamp: Long
+    ) : PersonalChatChangeEvent()
+}

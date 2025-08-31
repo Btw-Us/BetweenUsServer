@@ -3,7 +3,7 @@
  *
  * This work is the exclusive property of ayaan.
  *
- * Created: August 10, 2025 02:17 PM
+ * Created: September 01, 2025 12:39 AM
  * Author: ayaan
  * Project: BetweenUsServe
  *
@@ -16,20 +16,22 @@
 package com.aatech.dagger.components
 
 import com.aatech.dagger.modules.MongoDbModule
-import com.aatech.database.mongodb.repository.PersonChatRepository
-import com.mongodb.kotlin.client.coroutine.MongoDatabase
+import com.aatech.dagger.modules.WebSocketModule
 import dagger.Component
 import javax.inject.Singleton
 
 @Singleton
 @Component(
     modules = [
+        WebSocketModule::class,
         MongoDbModule::class
     ]
 )
-interface MongoDbComponent {
-    fun getMongoDbDatabase(): MongoDatabase
+interface WebSocketComponent {
 
-    fun getPersonChatRepository(): PersonChatRepository
+    fun provideWebSocketConnectionManager(): com.aatech.websocket.cm.PersonalChatConnectionManager
+
+    fun provideWebSocketJson(): kotlinx.serialization.json.Json
+
 
 }

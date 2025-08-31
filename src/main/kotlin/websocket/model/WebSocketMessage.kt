@@ -15,33 +15,11 @@
 
 package com.aatech.websocket.model
 
-import com.aatech.database.mongodb.model.PersonalChatRoom
-import com.aatech.database.utils.PaginatedResponse
-import io.ktor.websocket.*
 import kotlinx.serialization.Serializable
-
-@Serializable
-enum class WebSocketEventSendingDataType {
-    INITIAL_DATA,
-    UPDATE_DATA,
-    TRIGGER_EVENT,
-}
 
 
 @Serializable
 data class WebSocketMessage<T>(
-    val type: WebSocketEventSendingDataType,
     val data: T,
     val timestamp: Long = System.currentTimeMillis()
-)
-
-@Serializable
-data class ChatRoomsUpdateData(
-    val chatRooms: PaginatedResponse<PersonalChatRoom>
-)
-
-data class PersonalChatConnection(
-    val session: WebSocketSession,
-    val userId: String,
-    val connectedAt: Long = System.currentTimeMillis()
 )

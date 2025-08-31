@@ -11,6 +11,7 @@
 package com.aatech.database.mongodb.repository
 
 import com.aatech.database.mongodb.model.Message
+import com.aatech.database.mongodb.model.PersonalChatChangeEvent
 import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.utils.PaginatedResponse
 import com.aatech.database.utils.PaginationRequest
@@ -26,8 +27,7 @@ interface PersonChatRepository {
 
     fun watchPersonalChats(
         userId: String,
-        paginationRequest: PaginationRequest
-    ): Flow<PaginatedResponse<PersonalChatRoom>>
+    ): Flow<PersonalChatChangeEvent>
 
     suspend fun addChatEntry(model: Message): String
 
