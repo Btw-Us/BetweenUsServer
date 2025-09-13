@@ -46,6 +46,14 @@ class PersonChatRepositoryImp(
         }
     }
 
+    override suspend fun checkHasPersonalChatRoom(userID: String, friendID: String): Boolean {
+        val filter = Filters.or(
+            Filters.and(Filters.eq("userId", userID), Filters.eq("friendId", friendID)),
+            Filters.and(Filters.eq("userId", friendID), Filters.eq("friendId", userID))
+        )
+        return personalChatCollection.countDocuments(filter) > 0
+    }
+
 
     suspend fun getPersonalChatsWithPagination(
         userId: String, paginationRequest: PaginationRequest

@@ -23,6 +23,7 @@ import com.aatech.database.mysql.model.*
 import com.aatech.database.mysql.model.entity.SearchUserResponse
 import com.aatech.database.mysql.model.entity.User
 import com.aatech.database.mysql.repository.user.UserInteractionRepository
+import com.aatech.utils.generateUuidFromSub
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.*
@@ -262,6 +263,7 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
                 it[UserFriendsTable.userId] = reqEntity.requesterId
                 it[UserFriendsTable.friendId] = reqEntity.receiverId
                 it[UserFriendsTable.friendshipRequestStatus] = requestStatus.name
+                it[UserFriendsTable.chatRoomPath] = (userId + friendId).generateUuidFromSub().toString()
             }
 
         }
@@ -306,14 +308,14 @@ class UserInteractionRepositoryImp : UserInteractionRepository {
 
     override suspend fun checkHasChatRoomId(userId: String, friendId: String): String? =
         withContext(Dispatchers.IO) {
-        transaction {
-            UserFriendsTable.selectAll().where {
-                (UserFriendsTable.userId eq userId and (UserFriendsTable.friendId eq friendId)) or
-                        (UserFriendsTable.userId eq friendId and (UserFriendsTable.friendId eq userId))
-            }.map { it[UserFriendsTable.chatRoomPath] }
-                .firstOrNull()
+            transaction {
+                UserFriendsTable.selectAll().where {
+                    (UserFriendsTable.userId eq userId and (UserFriendsTable.friendId eq friendId)) or
+                            (UserFriendsTable.userId eq friendId and (UserFriendsTable.friendId eq userId))
+                }.map { it[UserFriendsTable.chatRoomPath] }
+                    .firstOrNull()
+            }
         }
-    }
 
 
     fun rowToUserAndFriend(

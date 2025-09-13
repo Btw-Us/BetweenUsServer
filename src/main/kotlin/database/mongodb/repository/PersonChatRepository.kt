@@ -21,6 +21,11 @@ import kotlinx.coroutines.flow.Flow
 interface PersonChatRepository {
     suspend fun createPersonalChatRoom(model: PersonalChatRoom): String
 
+    suspend fun checkHasPersonalChatRoom(
+        userID: String,
+        friendID: String
+    ): Boolean
+
     suspend fun getAllPersonalChatRoom(
         userID: String,
         paginationRequest: PaginationRequest

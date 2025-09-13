@@ -16,13 +16,13 @@
 package com.aatech.database.usecase
 
 import com.aatech.database.mongodb.model.Message
+import com.aatech.database.mongodb.model.MessageState
 import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.mongodb.repository.PersonChatRepository
 import com.aatech.database.mysql.model.UserFriendsTable
 import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import com.aatech.database.utils.TransactionResult
 import com.aatech.database.utils.mysqlAndMongoTransactions
-import com.aatech.utils.generateUuidFromSub
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.and
@@ -39,14 +39,22 @@ data class CreateChatRoomUseCase(
         message: String
     ): TransactionResult<Unit, String> = withContext(Dispatchers.IO) {
 
-        val existingChatRoomId = userInteraction.checkHasChatRoomId(
+        val chatRoomId = userInteraction.checkHasChatRoomId(
             userId = userId,
             friendId = friendsId
         )
-        if (!existingChatRoomId.isNullOrBlank()) {
+        if (chatRoomId == null || chatRoomId.isEmpty()) {
+            throw Exception("Chat room id not found, users might not be friends")
+        }
+
+        if (personalChatRepository.checkHasPersonalChatRoom(
+                userID = userId,
+                friendID = friendsId
+            )
+        ) {
             personalChatRepository.addChatEntry(
                 Message(
-                    chatRoomId = existingChatRoomId,
+                    chatRoomId = chatRoomId,
                     fromUid = userId,
                     toUid = friendsId,
                     message = message,
@@ -55,11 +63,10 @@ data class CreateChatRoomUseCase(
             )
             return@withContext TransactionResult.Success(
                 Unit,
-                existingChatRoomId
+                chatRoomId
             )
         }
 
-        val chatRoomId = (userId + friendsId).generateUuidFromSub().toString()
         val userDetails = userInteraction.getUserById(
             userId
         ) ?: throw Exception("User not found")
@@ -93,6 +100,7 @@ data class CreateChatRoomUseCase(
                     friendFullName = friendsDetails.fullName,
                     lastMessage = message,
                     lastMessageTime = System.currentTimeMillis(),
+                    messageState = MessageState.SEND,
                     unreadCount = 0,
                     isPinned = false,
                     isArchived = false
@@ -105,7 +113,8 @@ data class CreateChatRoomUseCase(
                     fromUid = userId,
                     toUid = friendsId,
                     message = message,
-                    timestamp = System.currentTimeMillis()
+                    timestamp = System.currentTimeMillis(),
+                    messageState = MessageState.SEND,
                 )
                 personalChatRepository.addChatEntry(
                     message
