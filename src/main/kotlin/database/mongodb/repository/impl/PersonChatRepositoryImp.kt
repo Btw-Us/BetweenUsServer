@@ -28,6 +28,7 @@ import com.mongodb.client.model.changestream.OperationType
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
+import org.bson.types.ObjectId
 
 class PersonChatRepositoryImp(
     database: MongoDatabase = configureMongoDB()
@@ -47,9 +48,12 @@ class PersonChatRepositoryImp(
     }
 
     override suspend fun checkHasPersonalChatRoom(userID: String, friendID: String): Boolean {
+        val userObjectId = if (ObjectId.isValid(userID)) ObjectId(userID) else userID
+        val friendObjectId = if (ObjectId.isValid(friendID)) ObjectId(friendID) else friendID
+
         val filter = Filters.or(
-            Filters.and(Filters.eq("userId", userID), Filters.eq("friendId", friendID)),
-            Filters.and(Filters.eq("userId", friendID), Filters.eq("friendId", userID))
+            Filters.and(Filters.eq("userId", userObjectId), Filters.eq("friendId", friendObjectId)),
+            Filters.and(Filters.eq("userId", friendObjectId), Filters.eq("friendId", userObjectId))
         )
         return personalChatCollection.countDocuments(filter) > 0
     }

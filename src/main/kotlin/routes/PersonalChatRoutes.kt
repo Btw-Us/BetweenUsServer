@@ -45,21 +45,18 @@ fun Routing.allPersonalChatRoutes() {
         personalChatRepository = personalChatRepository,
         userInteraction = DaggerMySqlComponent.create().getUserInteractionRepository()
     )
-    val userInteraction: UserInteractionRepository =
-        DaggerMySqlComponent.create().getUserInteractionRepository()
+    val userInteraction: UserInteractionRepository = DaggerMySqlComponent.create().getUserInteractionRepository()
     watchPersonalChats(
         userLogInRepository = userLogInRepository
     )
     createPersonalChatRoomRoute(
-        createChatRoomUseCase = createChatRoomUseCase,
-        userLogInRepository = userLogInRepository
+        createChatRoomUseCase = createChatRoomUseCase, userLogInRepository = userLogInRepository
     )
     getChats(
         personalChatRepository
     )
     getAllMessages(
-        userLogInRepository = userLogInRepository,
-        personalChatRepository = personalChatRepository
+        userLogInRepository = userLogInRepository, personalChatRepository = personalChatRepository
     )
     sendNewMessage(
         userLogInRepository = userLogInRepository,
@@ -183,8 +180,7 @@ fun Routing.watchAllMessages(
             val userId = call.parameters["userId"]
             val personalChatRoomId = call.parameters["personalChatRoomId"]
             checkDeviceIntegrity(
-                currentUserId = userId,
-                userLogInRepository = userLogInRepository
+                currentUserId = userId, userLogInRepository = userLogInRepository
             ) {
                 if (personalChatRoomId.isNullOrBlank()) {
                     close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Personal Chat Room ID is required"))
@@ -228,8 +224,7 @@ fun Routing.watchAllMessages(
 
 
 fun Routing.createPersonalChatRoomRoute(
-    userLogInRepository: UserLogInRepository,
-    createChatRoomUseCase: CreateChatRoomUseCase
+    userLogInRepository: UserLogInRepository, createChatRoomUseCase: CreateChatRoomUseCase
 ) {
     authenticate("auth-bearer") {
         post(PersonalChatRoutes.CreateChat.path) {
@@ -319,10 +314,11 @@ fun Routing.sendNewMessage(
                 }
                 try {
                     val messageId = runBlocking {
+                        print("\n\n${messageModel.fromUid} , ${messageModel.toUid}\n\n")
                         val hasChatRoom = personalChatRepository.checkHasPersonalChatRoom(
-                            userID = messageModel.fromUid,
-                            friendID = messageModel.toUid
+                            userID = messageModel.fromUid, friendID = messageModel.toUid
                         )
+                        print("hasChatRoom : $hasChatRoom")
                         if (!hasChatRoom) {
                             val userDetails = userInteraction.getUserById(
                                 messageModel.fromUid
@@ -362,8 +358,7 @@ fun Routing.sendNewMessage(
                         )
                     }
                     call.respond(
-                        message = messageId,
-                        status = HttpStatusCode.Created
+                        message = messageId, status = HttpStatusCode.Created
                     )
                 } catch (e: Exception) {
                     call.respond(
@@ -385,8 +380,7 @@ private fun getPersonalChatRoomIdFromCall(call: ApplicationCall): String? {
 }
 
 fun Routing.getAllMessages(
-    userLogInRepository: UserLogInRepository,
-    personalChatRepository: PersonChatRepository
+    userLogInRepository: UserLogInRepository, personalChatRepository: PersonChatRepository
 ) {
     authenticate("auth-bearer") {
         get(PersonalChatRoutes.GetAllMessages.path) {
