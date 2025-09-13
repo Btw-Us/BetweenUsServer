@@ -20,7 +20,9 @@ import com.aatech.dagger.components.DaggerMySqlComponent
 import com.aatech.dagger.components.DaggerWebSocketComponent
 import com.aatech.database.mongodb.model.Message
 import com.aatech.database.mongodb.model.MessageState
+import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.mongodb.repository.PersonChatRepository
+import com.aatech.database.mysql.repository.user.UserInteractionRepository
 import com.aatech.database.mysql.repository.user.UserLogInRepository
 import com.aatech.database.usecase.CreateChatRoomUseCase
 import com.aatech.database.utils.PaginationRequest
@@ -43,6 +45,8 @@ fun Routing.allPersonalChatRoutes() {
         personalChatRepository = personalChatRepository,
         userInteraction = DaggerMySqlComponent.create().getUserInteractionRepository()
     )
+    val userInteraction: UserInteractionRepository =
+        DaggerMySqlComponent.create().getUserInteractionRepository()
     watchPersonalChats(
         userLogInRepository = userLogInRepository
     )
@@ -59,7 +63,8 @@ fun Routing.allPersonalChatRoutes() {
     )
     sendNewMessage(
         userLogInRepository = userLogInRepository,
-        personalChatRepository = personalChatRepository
+        personalChatRepository = personalChatRepository,
+        userInteraction = userInteraction
     )
     watchAllMessages(
         userLogInRepository = userLogInRepository
@@ -282,7 +287,8 @@ fun Routing.createPersonalChatRoomRoute(
 
 fun Routing.sendNewMessage(
     userLogInRepository: UserLogInRepository,
-    personalChatRepository: PersonChatRepository
+    personalChatRepository: PersonChatRepository,
+    userInteraction: UserInteractionRepository
 ) {
     authenticate("auth-bearer") {
         post(PersonalChatRoutes.SendMessage.path) {
@@ -313,6 +319,42 @@ fun Routing.sendNewMessage(
                 }
                 try {
                     val messageId = runBlocking {
+                        val hasChatRoom = personalChatRepository.checkHasPersonalChatRoom(
+                            userID = messageModel.fromUid,
+                            friendID = messageModel.toUid
+                        )
+                        if (!hasChatRoom) {
+                            val userDetails = userInteraction.getUserById(
+                                messageModel.fromUid
+                            ) ?: throw Exception("User not found")
+
+                            val friendsDetails = userInteraction.getUserById(
+                                messageModel.toUid
+                            ) ?: throw Exception("Friend not found")
+                            val personalChatRoom = PersonalChatRoom(
+                                id = messageModel.chatRoomId,
+                                userId = userDetails.uuid,
+                                friendId = friendsDetails.uuid,
+                                userName = userDetails.username,
+                                friendUserName = friendsDetails.username,
+                                userProfileUrl = userDetails.profilePicture ?: "",
+                                friendProfileUrl = friendsDetails.profilePicture ?: "",
+                                userFullName = userDetails.fullName,
+                                friendFullName = friendsDetails.fullName,
+                                lastMessage = messageModel.message,
+                                lastMessageTime = System.currentTimeMillis(),
+                                messageState = MessageState.SEND,
+                                unreadCount = 0,
+                                isPinned = false,
+                                isArchived = false
+                            )
+                            val personalChatRoomId = personalChatRepository.createPersonalChatRoom(
+                                personalChatRoom
+                            )
+                            if (personalChatRoomId.isBlank()) {
+                                throw Exception("Failed to create personal chat room")
+                            }
+                        }
                         personalChatRepository.addChatEntry(
                             model = messageModel.copy(
                                 messageState = MessageState.SEND
