@@ -11,6 +11,7 @@
 package com.aatech.database.mongodb.repository.impl
 
 import com.aatech.database.mongodb.model.Message
+import com.aatech.database.mongodb.model.MessageChangeEvent
 import com.aatech.database.mongodb.model.PersonalChatChangeEvent
 import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.mongodb.repository.PersonChatRepository
@@ -47,28 +48,22 @@ class PersonChatRepositoryImp(
 
 
     suspend fun getPersonalChatsWithPagination(
-        userId: String,
-        paginationRequest: PaginationRequest
+        userId: String, paginationRequest: PaginationRequest
     ): PaginatedResponse<PersonalChatRoom> {
 
         val filter = Filters.or(
-            Filters.eq("userId", userId),
-            Filters.eq("friendId", userId)
+            Filters.eq("userId", userId), Filters.eq("friendId", userId)
         )
 
         // Get total count
         val totalItems = personalChatCollection.countDocuments(filter)
 
         // Get paginated data with proper sorting
-        val chatRooms = personalChatCollection
-            .find(filter)
-            .sort(
+        val chatRooms = personalChatCollection.find(filter).sort(
                 Sorts.orderBy(
                     Sorts.descending("lastMessageTime")
                 )
-            )
-            .skip(paginationRequest.offset)
-            .limit(paginationRequest.limit) // Use limit, not pageSize
+            ).skip(paginationRequest.offset).limit(paginationRequest.limit) // Use limit, not pageSize
             .toList()
 
         // Fix: Use consistent pageSize from paginationRequest.limit
@@ -88,8 +83,7 @@ class PersonChatRepositoryImp(
     }
 
     override suspend fun getAllPersonalChatRoom(
-        userID: String,
-        paginationRequest: PaginationRequest
+        userID: String, paginationRequest: PaginationRequest
     ): PaginatedResponse<PersonalChatRoom> {
         return getPersonalChatsWithPagination(userID, paginationRequest)
     }
@@ -101,19 +95,15 @@ class PersonChatRepositoryImp(
             Aggregates.match(
                 Filters.or(
                     Filters.and(
-                        Filters.`in`("operationType", listOf("insert", "update", "replace")),
-                        Filters.or(
-                            Filters.eq("fullDocument.userId", userId),
-                            Filters.eq("fullDocument.friendId", userId)
+                        Filters.`in`("operationType", listOf("insert", "update", "replace")), Filters.or(
+                            Filters.eq("fullDocument.userId", userId), Filters.eq("fullDocument.friendId", userId)
                         )
-                    ),
-                    Filters.eq("operationType", "delete")
+                    ), Filters.eq("operationType", "delete")
                 )
             )
         )
 
-        return personalChatCollection.watch(pipeline)
-            .fullDocument(FullDocument.UPDATE_LOOKUP)
+        return personalChatCollection.watch(pipeline).fullDocument(FullDocument.UPDATE_LOOKUP)
             .filter { changeStreamDocument ->
                 when (changeStreamDocument.operationType) {
                     OperationType.INSERT, OperationType.UPDATE, OperationType.REPLACE -> {
@@ -124,48 +114,35 @@ class PersonChatRepositoryImp(
                     OperationType.DELETE -> true
                     else -> false
                 }
-            }
-            .map { changeStreamDocument ->
+            }.map { changeStreamDocument ->
                 when (changeStreamDocument.operationType) {
                     OperationType.INSERT -> {
                         PersonalChatChangeEvent.Insert(
-                            data = changeStreamDocument.fullDocument!!,
-                            timestamp = System.currentTimeMillis()
+                            data = changeStreamDocument.fullDocument!!, timestamp = System.currentTimeMillis()
                         )
                     }
 
                     OperationType.UPDATE, OperationType.REPLACE -> {
                         PersonalChatChangeEvent.Update(
-                            data = changeStreamDocument.fullDocument!!,
-                            timestamp = System.currentTimeMillis()
+                            data = changeStreamDocument.fullDocument!!, timestamp = System.currentTimeMillis()
                         )
                     }
 
                     OperationType.DELETE -> {
                         val documentId = changeStreamDocument.documentKey?.get("_id")?.asString()?.value
                         PersonalChatChangeEvent.Delete(
-                            deletedId = documentId!!,
-                            timestamp = System.currentTimeMillis()
+                            deletedId = documentId!!, timestamp = System.currentTimeMillis()
                         )
                     }
 
                     else -> throw IllegalStateException("Unsupported operation type")
                 }
-            }
-            .flowOn(Dispatchers.IO)
-    }
-
-    suspend fun getInitialPersonalChatsWithPagination(
-        userId: String,
-        paginationRequest: PaginationRequest
-    ): PaginatedResponse<PersonalChatRoom> {
-        return getPersonalChatsWithPagination(userId, paginationRequest)
+            }.flowOn(Dispatchers.IO)
     }
 
 
     suspend fun getChatsWithPagination(
-        personalChatRoomId: String,
-        paginationRequest: PaginationRequest
+        personalChatRoomId: String, paginationRequest: PaginationRequest
     ): PaginatedResponse<Message> {
         val filter = Filters.eq("chatRoomId", personalChatRoomId)
 
@@ -173,10 +150,7 @@ class PersonChatRepositoryImp(
         val totalItems = messageCollection.countDocuments(filter)
 
         // Get paginated data with proper sorting
-        val messages = messageCollection
-            .find(filter)
-            .sort(Sorts.descending("timestamp"))
-            .skip(paginationRequest.offset)
+        val messages = messageCollection.find(filter).sort(Sorts.descending("timestamp")).skip(paginationRequest.offset)
             .limit(paginationRequest.limit) // Use limit, not pageSize
             .toList()
 
@@ -197,10 +171,8 @@ class PersonChatRepositoryImp(
 
 
     override suspend fun getChatEntries(
-        personalChatRoomId: String,
-        paginationRequest: PaginationRequest
-    ): PaginatedResponse<Message> =
-        getChatsWithPagination(personalChatRoomId, paginationRequest)
+        personalChatRoomId: String, paginationRequest: PaginationRequest
+    ): PaginatedResponse<Message> = getChatsWithPagination(personalChatRoomId, paginationRequest)
 
 
     override suspend fun addChatEntry(model: Message): String {
@@ -212,40 +184,55 @@ class PersonChatRepositoryImp(
         }
     }
 
-    override fun watchChatEntries(personalChatRoomId: String): Flow<List<Message>> {
-        val pipeline = mutableListOf(
-            Aggregates.match(
-                Filters.`in`(
-                    "operationType",
-                    listOf("insert", "update", "replace", "delete")
-                )
-            )
-        )
-        pipeline.add(
+    override fun watchChatEntries(
+        personalChatRoomId: String
+    ): Flow<MessageChangeEvent> {
+        val pipeline = listOf(
             Aggregates.match(
                 Filters.or(
-                    Filters.eq("chatRoomId", personalChatRoomId),
+                    Filters.and(
+                        Filters.`in`("operationType", listOf("insert", "update", "replace")),
+                        Filters.eq("fullDocument.chatRoomId", personalChatRoomId)
+                    ), Filters.eq("operationType", "delete")
                 )
             )
         )
-        return messageCollection.watch(pipeline)
-            .fullDocument(FullDocument.UPDATE_LOOKUP)
-            .scan(emptyList()) { currentList, changeStreamDocument ->
-                val document = changeStreamDocument.fullDocument
-                    ?: throw Exception("No full document found")
+
+        return messageCollection.watch(pipeline).fullDocument(FullDocument.UPDATE_LOOKUP)
+            .filter { changeStreamDocument ->
                 when (changeStreamDocument.operationType) {
-                    OperationType.INSERT -> currentList + document
+                    OperationType.INSERT, OperationType.UPDATE, OperationType.REPLACE -> {
+                        val document = changeStreamDocument.fullDocument
+                        document != null && document.chatRoomId == personalChatRoomId
+                    }
+
+                    OperationType.DELETE -> true
+                    else -> false
+                }
+            }.map { changeStreamDocument ->
+                when (changeStreamDocument.operationType) {
+                    OperationType.INSERT -> {
+                        MessageChangeEvent.Insert(
+                            data = changeStreamDocument.fullDocument!!, timestamp = System.currentTimeMillis()
+                        )
+                    }
+
                     OperationType.UPDATE, OperationType.REPLACE -> {
-                        currentList.map { if (it.id == document.id) document else it }
+                        MessageChangeEvent.Update(
+                            data = changeStreamDocument.fullDocument!!, timestamp = System.currentTimeMillis()
+                        )
                     }
 
                     OperationType.DELETE -> {
-                        currentList.filter { it.id != document.id }
+                        val documentId = changeStreamDocument.documentKey?.get("_id")?.asString()?.value
+                        MessageChangeEvent.Delete(
+                            deletedId = documentId!!, timestamp = System.currentTimeMillis()
+                        )
                     }
 
-                    else -> currentList
+                    else -> throw IllegalStateException("Unsupported operation type")
                 }
-            }
+            }.flowOn(Dispatchers.IO)
     }
 
     override suspend fun rollBackCreatePersonalChatRoomWithMessage(id: String) {

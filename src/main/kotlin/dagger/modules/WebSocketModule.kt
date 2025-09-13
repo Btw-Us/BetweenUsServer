@@ -40,4 +40,15 @@ class WebSocketModule {
             personalChatRepository = personalChatRepository,
             json = json
         )
+
+    @Provides
+    @Singleton
+    fun provideAllMessageConnectionManager(
+        personalChatRepository: PersonChatRepository,
+        json: kotlinx.serialization.json.Json
+    ): com.aatech.websocket.cm.AllMessageConnectionManager =
+        com.aatech.websocket.cm.AllMessageConnectionManager(
+            personalChatRepository = personalChatRepository,
+            json = json
+        )
 }

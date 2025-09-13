@@ -105,3 +105,35 @@ sealed class PersonalChatChangeEvent {
         override val timestamp: Long
     ) : PersonalChatChangeEvent()
 }
+
+@Serializable
+sealed class MessageChangeEvent {
+    abstract val timestamp: Long
+
+    @SerialName("Connected")
+    @Serializable
+    data class Connected(
+        override val timestamp: Long = System.currentTimeMillis()
+    ) : MessageChangeEvent()
+
+    @SerialName("Insert")
+    @Serializable
+    data class Insert(
+        val data: Message,
+        override val timestamp: Long
+    ) : MessageChangeEvent()
+
+    @SerialName("Update")
+    @Serializable
+    data class Update(
+        val data: Message,
+        override val timestamp: Long
+    ) : MessageChangeEvent()
+
+    @SerialName("Delete")
+    @Serializable
+    data class Delete(
+        val deletedId: String,
+        override val timestamp: Long
+    ) : MessageChangeEvent()
+}

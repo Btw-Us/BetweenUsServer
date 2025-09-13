@@ -11,6 +11,7 @@
 package com.aatech.database.mongodb.repository
 
 import com.aatech.database.mongodb.model.Message
+import com.aatech.database.mongodb.model.MessageChangeEvent
 import com.aatech.database.mongodb.model.PersonalChatChangeEvent
 import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.utils.PaginatedResponse
@@ -38,7 +39,7 @@ interface PersonChatRepository {
 
     fun watchChatEntries(
         personalChatRoomId: String
-    ): Flow<List<Message>>
+    ): Flow<MessageChangeEvent>
 
 
     suspend fun rollBackCreatePersonalChatRoomWithMessage(id: String)

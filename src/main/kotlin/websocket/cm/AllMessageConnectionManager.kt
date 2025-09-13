@@ -3,7 +3,7 @@
  *
  * This work is the exclusive property of ayaan.
  *
- * Created: September 01, 2025 12:29 AM
+ * Created: September 13, 2025 03:18 PM
  * Author: ayaan
  * Project: BetweenUsServe
  *
@@ -15,7 +15,7 @@
 
 package com.aatech.websocket.cm
 
-import com.aatech.database.mongodb.model.PersonalChatChangeEvent
+import com.aatech.database.mongodb.model.MessageChangeEvent
 import com.aatech.database.mongodb.repository.PersonChatRepository
 import com.aatech.websocket.collectForWebSocket
 import com.aatech.websocket.model.WebSocketMessage
@@ -28,7 +28,7 @@ import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
-class PersonalChatConnectionManager @Inject constructor(
+class AllMessageConnectionManager @Inject constructor(
     private val personalChatRepository: PersonChatRepository,
     private val json: Json
 ) {
@@ -36,26 +36,26 @@ class PersonalChatConnectionManager @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     suspend fun addConnection(
-        userId: String,
+        personalChatRoomId: String,
         session: WebSocketSession
     ) {
-        connections[userId] = session
+        connections[personalChatRoomId] = session
         session.send(
             sendData(
-                PersonalChatChangeEvent.Connected()
+                MessageChangeEvent.Connected()
             )
         )
-        observePersonalChatChanges(userId, session)
+        observeMessageChanges(personalChatRoomId, session)
     }
 
-    private fun observePersonalChatChanges(
-        userId: String,
+    private fun observeMessageChanges(
+        chatRoomId: String,
         session: WebSocketSession
     ) {
         scope.launch {
-            personalChatRepository.watchPersonalChats(userId)
+            personalChatRepository.watchChatEntries(chatRoomId)
                 .collectForWebSocket(
-                    id = userId,
+                    id = chatRoomId,
                     scope = this,
                     session = session,
                     connections = connections,
@@ -64,8 +64,9 @@ class PersonalChatConnectionManager @Inject constructor(
         }
     }
 
+
     private fun sendData(
-        event: PersonalChatChangeEvent,
+        event: MessageChangeEvent,
     ): Frame.Text = Frame.Text(
         json.encodeToString(
             WebSocketMessage(
@@ -74,7 +75,7 @@ class PersonalChatConnectionManager @Inject constructor(
         )
     )
 
-    fun removeConnection(userId: String) {
-        connections.remove(userId)
+    fun removeConnection(personalChatRoomId: String) {
+        connections.remove(personalChatRoomId)
     }
 }

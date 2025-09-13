@@ -33,5 +33,5 @@ interface WebSocketComponent {
 
     fun provideWebSocketJson(): kotlinx.serialization.json.Json
 
-
+    fun provideAllMessageConnectionManager(): com.aatech.websocket.cm.AllMessageConnectionManager
 }
