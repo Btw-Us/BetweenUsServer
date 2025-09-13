@@ -60,10 +60,10 @@ class PersonChatRepositoryImp(
 
         // Get paginated data with proper sorting
         val chatRooms = personalChatCollection.find(filter).sort(
-                Sorts.orderBy(
-                    Sorts.descending("lastMessageTime")
-                )
-            ).skip(paginationRequest.offset).limit(paginationRequest.limit) // Use limit, not pageSize
+            Sorts.orderBy(
+                Sorts.descending("lastMessageTime")
+            )
+        ).skip(paginationRequest.offset).limit(paginationRequest.limit) // Use limit, not pageSize
             .toList()
 
         // Fix: Use consistent pageSize from paginationRequest.limit
@@ -177,6 +177,14 @@ class PersonChatRepositoryImp(
 
     override suspend fun addChatEntry(model: Message): String {
         return try {
+            personalChatCollection.updateMany(
+                Filters.eq("_id", model.chatRoomId),
+                com.mongodb.client.model.Updates.combine(
+                    com.mongodb.client.model.Updates.set("lastMessageTime", model.timestamp),
+                    com.mongodb.client.model.Updates.set("lastMessage", model.message),
+                    com.mongodb.client.model.Updates.set("messageState", model.messageState)
+                )
+            )
             val result = messageCollection.insertOne(model)
             result.insertedId?.asString()?.value ?: throw Exception("Failed to add chat entry")
         } catch (e: Exception) {
