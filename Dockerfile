@@ -1,45 +1,27 @@
 # Stage 1: Build the application
-FROM --platform=$BUILDPLATFORM eclipse-temurin:17-jdk-alpine AS build
-
-# Set up build arguments for cross-compilation
-ARG BUILDPLATFORM
-ARG TARGETPLATFORM
-ARG TARGETOS
-ARG TARGETARCH
-
+FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
 
-# Install Gradle (will automatically install the correct version for the architecture)
+# Install Gradle
 RUN apk add --no-cache gradle
 
-# Copy build files
+# Copy build files and source
 COPY build.gradle.kts .
 COPY settings.gradle.kts .
 COPY gradle.properties .
 COPY .env .
-
-# Copy the rest of the source code
 COPY src src
 
-# Build the application using system gradle
+# Build the application
 RUN gradle installDist
 
 # Stage 2: Create the final image
-FROM eclipse-temurin:17-jre-alpine
-
-# Set up platform arguments for runtime
-ARG TARGETPLATFORM
-ARG TARGETOS
-ARG TARGETARCH
-
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Copy the built application from the build stage
+# Copy the built application
 COPY --from=build /app/build/install/BetweenUsServe .
 COPY --from=build /app/.env .
 
-# Expose the port the application runs on
 EXPOSE 8080
-
-# Run the application
 CMD ["bin/BetweenUsServe"]
