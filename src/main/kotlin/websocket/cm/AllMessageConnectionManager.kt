@@ -36,26 +36,27 @@ class AllMessageConnectionManager @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     suspend fun addConnection(
-        personalChatRoomId: String,
+        userId: String,
         session: WebSocketSession
     ) {
-        connections[personalChatRoomId] = session
+        print("\n\nId $userId\n\n")
+        connections[userId] = session
         session.send(
             sendData(
                 MessageChangeEvent.Connected()
             )
         )
-        observeMessageChanges(personalChatRoomId, session)
+        observeMessageChanges(userId, session)
     }
 
     private fun observeMessageChanges(
-        chatRoomId: String,
+        userId: String,
         session: WebSocketSession
     ) {
         scope.launch {
-            personalChatRepository.watchChatEntries(chatRoomId)
+            personalChatRepository.watchChatEntries(userId)
                 .collectForWebSocket(
-                    id = chatRoomId,
+                    id = userId,
                     scope = this,
                     session = session,
                     connections = connections,
@@ -75,7 +76,7 @@ class AllMessageConnectionManager @Inject constructor(
         )
     )
 
-    fun removeConnection(personalChatRoomId: String) {
-        connections.remove(personalChatRoomId)
+    fun removeConnection(userId: String) {
+        connections.remove(userId)
     }
 }

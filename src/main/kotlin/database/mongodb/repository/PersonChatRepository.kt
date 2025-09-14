@@ -43,7 +43,7 @@ interface PersonChatRepository {
     ): PaginatedResponse<Message>
 
     fun watchChatEntries(
-        personalChatRoomId: String
+        userId: String
     ): Flow<MessageChangeEvent>
 
 

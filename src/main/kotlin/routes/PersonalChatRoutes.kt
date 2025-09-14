@@ -176,13 +176,12 @@ fun Routing.watchAllMessages(
     userLogInRepository: UserLogInRepository,
 ) {
     authenticate("auth-bearer") {
-        webSocket("${PersonalChatRoutes.WatchPersonalChats.path}/{userId}/{personalChatRoomId}/messages") {
+        webSocket("${PersonalChatRoutes.WatchPersonalChats.path}/{userId}/messages") {
             val userId = call.parameters["userId"]
-            val personalChatRoomId = call.parameters["personalChatRoomId"]
             checkDeviceIntegrity(
                 currentUserId = userId, userLogInRepository = userLogInRepository
             ) {
-                if (personalChatRoomId.isNullOrBlank()) {
+                if (userId.isNullOrBlank()) {
                     close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Personal Chat Room ID is required"))
                     return@checkDeviceIntegrity
                 }
@@ -190,7 +189,7 @@ fun Routing.watchAllMessages(
                 val connectionManager = DaggerWebSocketComponent.create().provideAllMessageConnectionManager()
 
                 connectionManager.addConnection(
-                    personalChatRoomId, this
+                    userId, this
                 )
 
                 try {
@@ -201,21 +200,21 @@ fun Routing.watchAllMessages(
                             }
 
                             is Frame.Close -> {
-                                println("WebSocket connection closed for chat room $personalChatRoomId")
+                                println("WebSocket connection closed for chat room ")
                                 break
                             }
 
                             else -> {
-                                println("Received unexpected frame type from chat room $personalChatRoomId")
+                                println("Received unexpected frame type from chat room ")
                             }
                         }
                     }
                 } catch (e: Exception) {
-                    println("Error in WebSocket connection for chat room $personalChatRoomId: ${e.message}")
+                    println("Error in WebSocket connection for chat room : ${e.message}")
                     e.printStackTrace()
                 } finally {
-                    connectionManager.removeConnection(personalChatRoomId)
-                    println("Connection removed for chat room $personalChatRoomId")
+                    connectionManager.removeConnection(userId)
+                    println("Connection removed for chat room ")
                 }
             }
         }

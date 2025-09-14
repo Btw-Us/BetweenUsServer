@@ -205,25 +205,31 @@ class PersonChatRepositoryImp(
     }
 
     override fun watchChatEntries(
-        personalChatRoomId: String
+        userId: String
     ): Flow<MessageChangeEvent> {
         val pipeline = listOf(
             Aggregates.match(
                 Filters.or(
+                    // For insert/update/replace operations, check if user is involved
                     Filters.and(
                         Filters.`in`("operationType", listOf("insert", "update", "replace")),
-                        Filters.eq("fullDocument.chatRoomId", personalChatRoomId)
-                    ), Filters.eq("operationType", "delete")
+                        Filters.or(
+                            Filters.eq("fullDocument.toUid", userId),
+                            Filters.eq("fullDocument.fromUid", userId)
+                        )
+                    ),
+                    // For delete operations, we can't check fullDocument (it's null)
+                    // You might need to store userId in documentKey or handle differently
+                    Filters.eq("operationType", "delete")
                 )
             )
         )
-
         return messageCollection.watch(pipeline).fullDocument(FullDocument.UPDATE_LOOKUP)
             .filter { changeStreamDocument ->
                 when (changeStreamDocument.operationType) {
                     OperationType.INSERT, OperationType.UPDATE, OperationType.REPLACE -> {
                         val document = changeStreamDocument.fullDocument
-                        document != null && document.chatRoomId == personalChatRoomId
+                        document != null && (document.toUid == userId || document.fromUid == userId)
                     }
 
                     OperationType.DELETE -> true
