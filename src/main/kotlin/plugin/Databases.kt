@@ -10,6 +10,7 @@
 
 package com.aatech.plugin
 
+import com.aatech.database.mongodb.migration.MigrationRunner
 import com.aatech.database.mongodb.model.Message
 import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.mysql.config.DatabaseConfig
@@ -60,6 +61,7 @@ fun configureMongoDB(): MongoDatabase {
     val userName = getEnv("MANGO_DB_USER_NAME")
     val password = getEnv("MANGO_DB_PASSWORD")
     val databaseName = getEnv("DATABASE_NAME")
+    val migrationDatabaseName = getEnv("MIGRATION_DATABASE_NAME", "${databaseName}_migrations")
     val replicaSet = getEnv("MONGO_DB_REPLICA_SET", "rs0")
 
     val encodedUserName = URLEncoder.encode(userName, StandardCharsets.UTF_8.toString())
@@ -68,22 +70,42 @@ fun configureMongoDB(): MongoDatabase {
     val connectionString =
         "mongodb://$encodedUserName:$encodedPassword@$mangoDbUrl/$databaseName?replicaSet=$replicaSet&authSource=admin"
     val mongoClient = MongoClient.create(connectionString)
-    val database = mongoClient.getDatabase(databaseName)
+
+    // Get both app database and migration database
+    val appDatabase = mongoClient.getDatabase(databaseName)
+    val migrationDatabase = mongoClient.getDatabase(migrationDatabaseName)
 
     runBlocking(Dispatchers.IO) {
-        database.createCollection(
-            MongoDbCollectionNames.PersonalChatRoom.cName,
-        )
-        database.createCollection(
-            MongoDbCollectionNames.Message.cName,
-        )
+        // Create application collections
+        appDatabase.createCollection(MongoDbCollectionNames.PersonalChatRoom.cName)
+        appDatabase.createCollection(MongoDbCollectionNames.Message.cName)
+
+        // Create migration tracking collection
+        migrationDatabase.createCollection(MongoDbCollectionNames.MigrationEntry.cName)
 
         val personalChatRoomCollection =
-            database.getCollection<PersonalChatRoom>(MongoDbCollectionNames.PersonalChatRoom.cName)
-        val messagesCollection = database.getCollection<Message>(MongoDbCollectionNames.Message.cName)
+            appDatabase.getCollection<PersonalChatRoom>(MongoDbCollectionNames.PersonalChatRoom.cName)
+        val messagesCollection = appDatabase.getCollection<Message>(MongoDbCollectionNames.Message.cName)
+
+        // Create indexes
         createIndexes(personalChatRoomCollection, messagesCollection)
+
+        // Run migrations
+        runMigrations(appDatabase, migrationDatabase)
     }
-    return database
+
+    return appDatabase
+}
+
+suspend fun runMigrations(appDatabase: MongoDatabase, migrationDatabase: MongoDatabase) {
+    try {
+        val migrationRunner = MigrationRunner(appDatabase, migrationDatabase)
+        migrationRunner.runMigrations()
+        println("All migrations executed successfully")
+    } catch (e: Exception) {
+        println("Migration failed: ${e.message}")
+        throw e
+    }
 }
 
 suspend fun createIndexes(

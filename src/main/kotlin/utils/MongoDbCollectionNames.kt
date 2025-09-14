@@ -20,4 +20,5 @@ enum class MongoDbCollectionNames(
 ) {
     PersonalChatRoom("personal_chats"),
     Message("messages"),
+    MigrationEntry("migration_entries")
 }

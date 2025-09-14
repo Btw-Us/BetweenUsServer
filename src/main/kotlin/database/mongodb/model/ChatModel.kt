@@ -27,12 +27,14 @@ data class PersonalChatRoom(
     val friendFullName: String,
     val friendProfileUrl: String,
     val userProfileUrl: String,
+    val lastMessageId: String? = null,
     val lastMessage: String? = null,
     val lastMessageTime: Long? = null,
     val messageState: MessageState = MessageState.PENDING,
     val unreadCount: Int = 0,
     val isPinned: Boolean = false,
-    val isArchived: Boolean = false
+    val isArchived: Boolean = false,
+    val schemaVersion: Int = 2  // Track schema version
 )
 
 

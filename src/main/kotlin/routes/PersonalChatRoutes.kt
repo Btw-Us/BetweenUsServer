@@ -337,6 +337,7 @@ fun Routing.sendNewMessage(
                                 userFullName = userDetails.fullName,
                                 friendFullName = friendsDetails.fullName,
                                 lastMessage = messageModel.message,
+                                lastMessageId = messageModel.id,
                                 lastMessageTime = System.currentTimeMillis(),
                                 messageState = MessageState.SEND,
                                 unreadCount = 0,
