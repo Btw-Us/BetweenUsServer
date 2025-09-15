@@ -21,6 +21,7 @@ sealed class PersonalChatRoutes(val path: String) {
     object WatchPersonalChats : PersonalChatRoutes("$BASE_WP_PATH/watch/personal-chats")
     object GetAllMessages : PersonalChatRoutes("$BASE_REST_PATH/personal-chats/{personalChatRoomId}/messages")
     object SendMessage : PersonalChatRoutes("$BASE_REST_PATH/personal-chats//{personalChatRoomId}/messages")
+    object AcknowledgeMessages : PersonalChatRoutes("$BASE_REST_PATH/personal-chats/acknowledge-messages")
 }
 
 

@@ -10,10 +10,7 @@
 
 package com.aatech.database.mongodb.repository
 
-import com.aatech.database.mongodb.model.Message
-import com.aatech.database.mongodb.model.MessageChangeEvent
-import com.aatech.database.mongodb.model.PersonalChatChangeEvent
-import com.aatech.database.mongodb.model.PersonalChatRoom
+import com.aatech.database.mongodb.model.*
 import com.aatech.database.utils.PaginatedResponse
 import com.aatech.database.utils.PaginationRequest
 import kotlinx.coroutines.flow.Flow
@@ -46,6 +43,18 @@ interface PersonChatRepository {
         userId: String
     ): Flow<MessageChangeEvent>
 
+
+    suspend fun acknowledgeMessage(
+        chatRoomId: String,
+        messageId: String,
+        state: MessageState
+    ): Boolean
+
+    suspend fun acknowledgeMessages(
+        chatRoomId: String,
+        messageIds: List<String>,
+        state: MessageState
+    ): Long
 
     suspend fun rollBackCreatePersonalChatRoomWithMessage(id: String)
 }

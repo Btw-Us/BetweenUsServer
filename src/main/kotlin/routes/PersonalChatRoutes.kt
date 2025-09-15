@@ -66,6 +66,10 @@ fun Routing.allPersonalChatRoutes() {
     watchAllMessages(
         userLogInRepository = userLogInRepository
     )
+    acknowledgeMessages(
+        userLogInRepository = userLogInRepository,
+        personalChatRepository = personalChatRepository
+    )
 }
 
 
@@ -411,6 +415,71 @@ fun Routing.getAllMessages(
                     }
                     call.respond(
                         status = HttpStatusCode.OK, message = paginatedMessages
+                    )
+                } catch (e: Exception) {
+                    call.respond(
+                        status = HttpStatusCode.InternalServerError, message = createErrorResponse(
+                            message = "Internal Server Error",
+                            code = HttpStatusCode.InternalServerError.value,
+                            details = e.message ?: "An unexpected error occurred."
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+fun Routing.acknowledgeMessages(
+    userLogInRepository: UserLogInRepository,
+    personalChatRepository: PersonChatRepository
+) {
+    authenticate("auth-bearer") {
+        post(PersonalChatRoutes.AcknowledgeMessages.path) {
+            checkDeviceIntegrity(
+                userLogInRepository = userLogInRepository
+            ) { _ ->
+                val acknowledgeRequest = call.receive<com.aatech.config.body.MessageAcknowledgeRequest>()
+                if (acknowledgeRequest.messageId == null && acknowledgeRequest.messageIds == null) {
+                    call.respond(
+                        status = HttpStatusCode.BadRequest, message = createErrorResponse(
+                            message = "Bad Request",
+                            code = HttpStatusCode.BadRequest.value,
+                            details = "Either messageId or messageIds must be provided."
+                        )
+                    )
+                    return@checkDeviceIntegrity
+                }
+
+                if (acknowledgeRequest.messageIds.isNullOrEmpty() && acknowledgeRequest.messageId == null) {
+                    call.respond(
+                        status = HttpStatusCode.NoContent, message = createErrorResponse(
+                            message = "Allow Request",
+                            code = HttpStatusCode.NoContent.value,
+                            details = "No message IDs provided to acknowledge."
+                        )
+                    )
+                    return@checkDeviceIntegrity
+                }
+                try {
+                    val updatedCount = runBlocking {
+                        if (acknowledgeRequest.messageId != null) {
+                            personalChatRepository.acknowledgeMessage(
+                                chatRoomId = acknowledgeRequest.chatRoomId,
+                                messageId = acknowledgeRequest.messageId,
+                                state = MessageState.valueOf(acknowledgeRequest.state)
+                            )
+                            1L
+                        } else {
+                            personalChatRepository.acknowledgeMessages(
+                                chatRoomId = acknowledgeRequest.chatRoomId,
+                                messageIds = acknowledgeRequest.messageIds ?: return@runBlocking,
+                                state = MessageState.valueOf(acknowledgeRequest.state)
+                            )
+                        }
+                    }
+                    call.respond(
+                        status = HttpStatusCode.OK, message = updatedCount
                     )
                 } catch (e: Exception) {
                     call.respond(

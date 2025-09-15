@@ -38,6 +38,7 @@ fun Application.configureSerialization() {
             isLenient = true
             ignoreUnknownKeys = true // Ignore unknown keys in JSON
             encodeDefaults = true
+            explicitNulls = false
         })
     }
 }

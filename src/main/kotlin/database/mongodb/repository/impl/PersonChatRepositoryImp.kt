@@ -12,6 +12,7 @@ package com.aatech.database.mongodb.repository.impl
 
 import com.aatech.database.mongodb.model.Message
 import com.aatech.database.mongodb.model.MessageChangeEvent
+import com.aatech.database.mongodb.model.MessageState
 import com.aatech.database.mongodb.model.PersonalChatChangeEvent
 import com.aatech.database.mongodb.model.PersonalChatRoom
 import com.aatech.database.mongodb.repository.PersonChatRepository
@@ -23,6 +24,7 @@ import com.aatech.utils.MongoDbCollectionNames
 import com.mongodb.client.model.Aggregates
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Sorts
+import com.mongodb.client.model.Updates
 import com.mongodb.client.model.changestream.FullDocument
 import com.mongodb.client.model.changestream.OperationType
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
@@ -260,6 +262,71 @@ class PersonChatRepositoryImp(
                 }
             }.flowOn(Dispatchers.IO)
     }
+
+    override suspend fun acknowledgeMessage(
+        chatRoomId: String,
+        messageId: String,
+        state: MessageState
+    ): Boolean {
+        // Update single message in the message collection
+        val messageFilter = Filters.and(
+            Filters.eq("_id", messageId),
+            Filters.eq("chatRoomId", chatRoomId)
+        )
+        val messageUpdate = Updates.set("messageState", state)
+        val messageResult = messageCollection.updateOne(messageFilter, messageUpdate)
+
+        // Update the last message state in personal chat collection if this is the last message
+        val chatRoomFilter = Filters.and(
+            Filters.eq("_id", chatRoomId),
+            Filters.eq("lastMessageId", messageId)
+        )
+        val chatRoomUpdate = Updates.set("messageState", state)
+        val chatRoomResult = personalChatCollection.updateOne(chatRoomFilter, chatRoomUpdate)
+
+        // Debug logging
+        println("Updated message: ${messageResult.modifiedCount > 0}")
+        println("Updated chat room: ${chatRoomResult.modifiedCount > 0}")
+
+        return messageResult.modifiedCount > 0
+    }
+
+    // Method for acknowledging multiple messages
+    override suspend fun acknowledgeMessages(
+        chatRoomId: String,
+        messageIds: List<String>,
+        state: MessageState
+    ): Long {
+        // Validate input
+        if (messageIds.isEmpty()) {
+            println("No message IDs provided")
+            return 0
+        }
+
+        // Update messages in the message collection
+        val messageFilter = Filters.and(
+            Filters.`in`("_id", messageIds),
+            Filters.eq("chatRoomId", chatRoomId)
+        )
+        val messageUpdate = Updates.set("messageState", state)
+        val messageResult = messageCollection.updateMany(messageFilter, messageUpdate)
+
+        // Update the last message state in personal chat collection if needed
+        // Only update if one of the updated messages is the last message
+        val chatRoomFilter = Filters.and(
+            Filters.eq("_id", chatRoomId),
+            Filters.`in`("lastMessageId", messageIds)
+        )
+        val chatRoomUpdate = Updates.set("messageState", state)
+        val chatRoomResult = personalChatCollection.updateOne(chatRoomFilter, chatRoomUpdate)
+
+        // Debug logging
+        println("Updated ${messageResult.modifiedCount} messages to state: $state")
+        println("Updated ${chatRoomResult.modifiedCount} chat rooms")
+
+        return messageResult.modifiedCount
+    }
+
 
     override suspend fun rollBackCreatePersonalChatRoomWithMessage(id: String) {
         try {

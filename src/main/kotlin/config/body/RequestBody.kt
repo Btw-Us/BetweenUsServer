@@ -24,3 +24,12 @@ data class CreatePersonalChatRoomRequest(
     val friendsId: String,
     val message: String
 )
+
+
+@Serializable
+data class MessageAcknowledgeRequest(
+    val chatRoomId: String,
+    val messageId: String ?= null,
+    val messageIds: List<String> ?= null,
+    val state: String
+)
