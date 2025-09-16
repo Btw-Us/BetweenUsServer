@@ -4,6 +4,29 @@ ktor:
       - com.aatech.ApplicationKt.mainModule
   deployment:
     port: 8080
+    # Memory optimization - reduce thread pools for Raspberry Pi
+    connectionGroupSize: 1      # Default: 4
+    workerGroupSize: 2          # Default: 8
+    callGroupSize: 4            # Default: 16
+
+    # Netty-specific memory optimizations
+    maxInitialLineLength: 4096   # Default: 4096
+    maxHeaderSize: 8192          # Default: 8192
+    maxChunkSize: 8192           # Default: 8192
+
+    # Connection limits to reduce memory usage
+    tcpKeepAlive: false
+    reuseAddress: true
+    receiveBufferSize: 8192      # Smaller buffer
+    sendBufferSize: 8192         # Smaller buffer
+
+    # Timeout settings
+    requestReadTimeout: 10
+    shutdownGracePeriod: 1000
+    shutdownTimeout: 5000
+
+    # Disable development mode in production
+    developmentMode: false
 #
 #  jwt:
 #    secret: "secret"
