@@ -15,9 +15,11 @@ import com.aatech.config.api_config.checkAuth
 import com.aatech.config.api_config.checkDeviceIntegrity
 import com.aatech.config.body.CreatePersonalChatRoomRequest
 import com.aatech.config.response.createErrorResponse
+import com.aatech.dagger.components.DaggerFCMComponent
 import com.aatech.dagger.components.DaggerMongoDbComponent
 import com.aatech.dagger.components.DaggerMySqlComponent
 import com.aatech.dagger.components.DaggerWebSocketComponent
+import com.aatech.dagger.modules.MySqlModule
 import com.aatech.database.mongodb.model.Message
 import com.aatech.database.mongodb.model.MessageState
 import com.aatech.database.mongodb.model.PersonalChatRoom
@@ -27,6 +29,8 @@ import com.aatech.database.mysql.repository.user.UserLogInRepository
 import com.aatech.database.usecase.CreateChatRoomUseCase
 import com.aatech.database.utils.PaginationRequest
 import com.aatech.database.utils.TransactionResult
+import com.aatech.fcm.NotificationBuilder
+import com.aatech.fcm.SendMessageService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -41,6 +45,8 @@ import kotlinx.coroutines.runBlocking
 fun Routing.allPersonalChatRoutes() {
     val userLogInRepository = DaggerMySqlComponent.create().getUserRepository()
     val personalChatRepository = DaggerMongoDbComponent.create().getPersonChatRepository()
+    val fcmModule = DaggerFCMComponent.create().getSendMessageService()
+
     val createChatRoomUseCase = CreateChatRoomUseCase(
         personalChatRepository = personalChatRepository,
         userInteraction = DaggerMySqlComponent.create().getUserInteractionRepository()
@@ -61,7 +67,8 @@ fun Routing.allPersonalChatRoutes() {
     sendNewMessage(
         userLogInRepository = userLogInRepository,
         personalChatRepository = personalChatRepository,
-        userInteraction = userInteraction
+        userInteraction = userInteraction,
+        fcmModule = fcmModule,
     )
     watchAllMessages(
         userLogInRepository = userLogInRepository
@@ -286,7 +293,8 @@ fun Routing.createPersonalChatRoomRoute(
 fun Routing.sendNewMessage(
     userLogInRepository: UserLogInRepository,
     personalChatRepository: PersonChatRepository,
-    userInteraction: UserInteractionRepository
+    userInteraction: UserInteractionRepository,
+    fcmModule: SendMessageService
 ) {
     authenticate("auth-bearer") {
         post(PersonalChatRoutes.SendMessage.path) {
@@ -358,7 +366,40 @@ fun Routing.sendNewMessage(
                         personalChatRepository.addChatEntry(
                             model = messageModel.copy(
                                 messageState = MessageState.SEND
-                            )
+                            ),
+                            onDone = {
+                                val sendUserToken = userInteraction.getUserTokenById(
+                                    messageModel.toUid
+                                )
+                                val details = personalChatRepository.getPersonalChatRoomById(
+                                    messageModel.chatRoomId
+                                )
+                                val senderName =
+                                    if (details?.userId == messageModel.fromUid) details.userFullName else details?.friendFullName
+                                val senderImage =
+                                    if (details?.userId == messageModel.fromUid) details.userProfileUrl else details?.friendProfileUrl
+                                fcmModule.sendMessage(
+                                    NotificationBuilder()
+                                        .to(
+                                            sendUserToken ?: return@addChatEntry
+                                        )
+                                        .setMessageNotificationData {
+                                            title(
+                                                senderName ?: "New Message"
+                                            )
+                                            body(
+                                                if (messageModel.messageType == com.aatech.database.mongodb.model.MessageType.TEXT) messageModel.message
+                                                else "${messageModel.messageType.name} message"
+                                            )
+                                            senderId(messageModel.fromUid)
+                                            receiverId(messageModel.toUid)
+                                            senderName(senderName ?: "New Message")
+                                            senderImage(senderImage ?: "")
+                                            messageId(messageModel.id)
+                                        }
+                                        .buildToMessage()
+                                )
+                            }
                         )
                     }
                     call.respond(

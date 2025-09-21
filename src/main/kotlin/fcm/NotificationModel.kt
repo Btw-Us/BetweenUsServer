@@ -65,6 +65,21 @@ data class CancelNotificationData(
     override val body: String
 ) : NotificationData
 
+
+@Serializable
+@SerialName("MessageNotification")
+data class MessageNotificationData(
+    override val notificationId: String,
+    override val title: String,
+    override val body: String,
+    val senderId: String,
+    val receiverId: String,
+    val senderName: String,
+    val senderImage: String,
+    val messageId: String,
+    val chatRoomId: String,
+) : NotificationData
+
 fun NotificationModel.toMessage(): Message = Message.builder().apply {
     if (message.to != null) setToken(message.to)
     else setTopic(message.topic)
@@ -88,6 +103,19 @@ fun NotificationModel.toMessage(): Message = Message.builder().apply {
                     putData("type", "CancelNotification")
                     putData("notificationId", notificationId)
                 }
+
+                is MessageNotificationData -> {
+                    putData("type", "MessageNotification")
+                    putData("title", title)
+                    putData("body", body)
+                    putData("senderId", senderId)
+                    putData("receiverId", receiverId)
+                    putData("senderName", senderName)
+                    putData("senderImage", senderImage)
+                    putData("messageId", messageId)
+                    putData("chatRoomId", chatRoomId)
+                    putData("notificationId", notificationId)
+                }
             }
         }
     }
@@ -101,6 +129,42 @@ class NotificationBuilder {
     fun to(token: String) = apply { this.userToken = token }
     fun topic(topic: String) = apply { this.topicOrToken = topic }
     fun data(data: NotificationData) = apply { this.data = data }
+
+    class MessageNotificationBuilder {
+        private var title: String = ""
+        private var body: String = ""
+        private var senderId: String = ""
+        private var receiverId: String = ""
+        private var senderName: String = ""
+        private var senderImage: String = ""
+        private var messageId: String = ""
+        private var chatRoomId: String = ""
+        private var notificationId: Int = chatRoomId.hashCode()
+
+
+        fun title(title: String) = apply { this.title = title }
+        fun body(body: String) = apply { this.body = body }
+        fun senderId(senderId: String) = apply { this.senderId = senderId }
+        fun receiverId(receiverId: String) = apply { this.receiverId = receiverId }
+        fun senderName(senderName: String) = apply { this.senderName = senderName }
+        fun senderImage(senderImage: String) = apply { this.senderImage = senderImage }
+        fun messageId(messageId: String) = apply { this.messageId = messageId }
+
+
+        fun buildMisidentificationData() = MessageNotificationData(
+            title = title,
+            body = body,
+            senderId = senderId,
+            receiverId = receiverId,
+            senderName = senderName,
+            senderImage = senderImage,
+            messageId = messageId,
+            chatRoomId = chatRoomId,
+            notificationId = notificationId.toString()
+        )
+    }
+
+
 
     class SendFriendRequestBuilder {
         private var title: String = ""
@@ -152,6 +216,10 @@ class NotificationBuilder {
 
     fun setCancelNotificationData(block: CancelNotificationBuilder.() -> Unit) = apply {
         this.data = CancelNotificationBuilder().apply(block).buildCancelNotificationData()
+    }
+
+    fun setMessageNotificationData(block: MessageNotificationBuilder.() -> Unit) = apply {
+        this.data = MessageNotificationBuilder().apply(block).buildMisidentificationData()
     }
 
 

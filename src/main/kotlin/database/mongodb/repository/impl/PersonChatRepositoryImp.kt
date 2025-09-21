@@ -10,11 +10,7 @@
 
 package com.aatech.database.mongodb.repository.impl
 
-import com.aatech.database.mongodb.model.Message
-import com.aatech.database.mongodb.model.MessageChangeEvent
-import com.aatech.database.mongodb.model.MessageState
-import com.aatech.database.mongodb.model.PersonalChatChangeEvent
-import com.aatech.database.mongodb.model.PersonalChatRoom
+import com.aatech.database.mongodb.model.*
 import com.aatech.database.mongodb.repository.PersonChatRepository
 import com.aatech.database.utils.PaginatedResponse
 import com.aatech.database.utils.PaginationInfo
@@ -58,6 +54,10 @@ class PersonChatRepositoryImp(
             Filters.and(Filters.eq("userId", friendObjectId), Filters.eq("friendId", userObjectId))
         )
         return personalChatCollection.countDocuments(filter) > 0
+    }
+
+    override suspend fun getPersonalChatRoomById(id: String): PersonalChatRoom? {
+        return personalChatCollection.find(Filters.eq("_id", id)).firstOrNull()
     }
 
 
@@ -189,19 +189,24 @@ class PersonChatRepositoryImp(
     ): PaginatedResponse<Message> = getChatsWithPagination(personalChatRoomId, paginationRequest)
 
 
-    override suspend fun addChatEntry(model: Message): String {
+    override suspend fun addChatEntry(
+        model: Message,
+        onDone: suspend (Exception?) -> Unit
+    ): String {
         return try {
             personalChatCollection.updateMany(
                 Filters.eq("_id", model.chatRoomId),
-                com.mongodb.client.model.Updates.combine(
-                    com.mongodb.client.model.Updates.set("lastMessageTime", model.timestamp),
-                    com.mongodb.client.model.Updates.set("lastMessage", model.message),
-                    com.mongodb.client.model.Updates.set("messageState", model.messageState)
+                Updates.combine(
+                    Updates.set("lastMessageTime", model.timestamp),
+                    Updates.set("lastMessage", model.message),
+                    Updates.set("messageState", model.messageState)
                 )
             )
             val result = messageCollection.insertOne(model)
+            onDone.invoke(null)
             result.insertedId?.asString()?.value ?: throw Exception("Failed to add chat entry")
         } catch (e: Exception) {
+            onDone.invoke(null)
             throw Exception("Error adding chat entry: ${e.message}", e)
         }
     }

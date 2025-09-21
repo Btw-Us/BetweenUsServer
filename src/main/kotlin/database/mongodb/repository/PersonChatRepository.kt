@@ -23,6 +23,8 @@ interface PersonChatRepository {
         friendID: String
     ): Boolean
 
+    suspend fun getPersonalChatRoomById(id: String): PersonalChatRoom?
+
     suspend fun getAllPersonalChatRoom(
         userID: String,
         paginationRequest: PaginationRequest
@@ -32,7 +34,10 @@ interface PersonChatRepository {
         userId: String,
     ): Flow<PersonalChatChangeEvent>
 
-    suspend fun addChatEntry(model: Message): String
+    suspend fun addChatEntry(
+        model: Message,
+        onDone : suspend (Exception?) -> Unit = {}
+    ): String
 
     suspend fun getChatEntries(
         personalChatRoomId: String,
